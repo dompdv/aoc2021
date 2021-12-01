@@ -3,7 +3,7 @@ defmodule AdventOfCode.Day01 do
 
   def part1(args) do
     input =
-      [_ | t] = args |> String.split("\n") |> drop(-1) |> map(&String.to_integer/1)
+      [_ | t] = args |> String.split() |> map(&String.to_integer/1)
 
     zip([t, input]) |> map(fn {h, l} -> h - l end) |> filter(&(&1 > 0)) |> count()
   end
@@ -11,7 +11,7 @@ defmodule AdventOfCode.Day01 do
   def part2(args) do
     input =
       [_a, b, c | t] =
-      args |> String.split("\n") |> drop(-1) |> map(&String.to_integer/1)
+      args |> String.split() |> map(&String.to_integer/1)
 
     input = [_ | t] = Enum.zip([input, [b, c | t], [c | t]]) |> map(fn {a, b, c} -> a + b + c end)
     zip([t, input]) |> map(fn {h, l} -> h - l end) |> filter(&(&1 > 0)) |> count()
