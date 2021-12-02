@@ -24,6 +24,19 @@ defmodule AdventOfCode.Day02 do
   end
 
   def part2(args) do
-    args
+    {position, depth, _} =
+      args
+      |> String.split("\n")
+      |> drop(-1)
+      |> map(&parse_line/1)
+      |> reduce({0, 0, 0}, fn {dir, thrust}, {position, depth, aim} ->
+        case dir do
+          "forward" -> {position + thrust, depth + aim * thrust, aim}
+          "up" -> {position, depth, aim - thrust}
+          "down" -> {position, depth, aim + thrust}
+        end
+      end)
+
+    position * depth
   end
 end
