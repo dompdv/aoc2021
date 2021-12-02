@@ -1,7 +1,29 @@
 defmodule AdventOfCode.Day02 do
-  def part1(_args) do
+  import Enum
+
+  def parse_line(str) do
+    [dir, qty] = String.split(str, " ")
+    {dir, String.to_integer(qty)}
   end
 
-  def part2(_args) do
+  def part01(args) do
+    {position, depth} =
+      args
+      |> String.split("\n")
+      |> drop(-1)
+      |> map(&parse_line/1)
+      |> reduce({0, 0}, fn {dir, thrust}, {position, depth} ->
+        case dir do
+          "forward" -> {position + thrust, depth}
+          "up" -> {position, depth - thrust}
+          "down" -> {position, depth + thrust}
+        end
+      end)
+
+    position * depth
+  end
+
+  def part2(args) do
+    args
   end
 end
