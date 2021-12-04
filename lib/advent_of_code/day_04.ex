@@ -8,13 +8,9 @@ defmodule AdventOfCode.Day04 do
     boards =
       r
       |> map(fn a_board ->
-        regular =
-          a_board
-          |> String.split("\n", trim: true)
-          |> map(fn line -> String.split(line) |> map(&String.to_integer/1) end)
-
-        turned = for row <- 0..4, do: for(col <- 0..4, do: regular |> at(col) |> at(row))
-        {regular, turned}
+        a_board
+        |> String.split("\n", trim: true)
+        |> map(fn line -> String.split(line) |> map(&String.to_integer/1) end)
       end)
 
     {numbers, boards}
@@ -23,13 +19,20 @@ defmodule AdventOfCode.Day04 do
   def winning_boards(boards, numbers),
     do: boards |> filter(fn board -> winning_board(board, numbers) end)
 
-  def winning_board({reg, turned}, numbers),
-    do: winning_board(reg, numbers) or winning_board(turned, numbers)
-
   def winning_board(board, numbers) do
-    any?(board, fn line ->
-      count(MapSet.intersection(MapSet.new(line), MapSet.new(numbers))) == 5
-    end)
+    check_lines =
+      any?(board, fn line ->
+        count(MapSet.intersection(MapSet.new(line), MapSet.new(numbers))) == 5
+      end)
+
+    turned = for row <- 0..4, do: for(col <- 0..4, do: board |> at(col) |> at(row))
+
+    check_cols =
+      any?(turned, fn line ->
+        count(MapSet.intersection(MapSet.new(line), MapSet.new(numbers))) == 5
+      end)
+
+    check_lines or check_cols
   end
 
   def extract_losers(a_board, numbers) do
@@ -46,7 +49,7 @@ defmodule AdventOfCode.Day04 do
 
       if empty?(wb),
         do: {:cont, acc},
-        else: {:halt, x * (wb |> List.first() |> elem(0) |> extract_losers(acc) |> sum())}
+        else: {:halt, x * (wb |> List.first() |> extract_losers(acc) |> sum())}
     end)
   end
 
@@ -59,7 +62,7 @@ defmodule AdventOfCode.Day04 do
       remaining_boards = boards |> filter(fn b -> not member?(wb, b) end)
 
       if count(remaining_boards) == 0 do
-        {:halt, x * (wb |> List.first() |> elem(0) |> extract_losers(acc) |> sum())}
+        {:halt, x * (wb |> List.first() |> extract_losers(acc) |> sum())}
       else
         {:cont, {remaining_boards, acc}}
       end
