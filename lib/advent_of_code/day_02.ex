@@ -3,8 +3,7 @@ defmodule AdventOfCode.Day02 do
 
   def parse(args) do
     args
-    |> String.split("\n")
-    |> drop(-1)
+    |> String.split("\n", trim: true)
     |> map(fn str ->
       [dir, qty] = String.split(str, " ")
       {dir, String.to_integer(qty)}
