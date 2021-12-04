@@ -51,15 +51,18 @@ defmodule AdventOfCode.Day04 do
   end
 
   def part2(args) do
-    {numbers, boards} = parse(args)
+    {numbers, board_list} = parse(args)
 
-    Enum.reduce_while(numbers, [], fn x, acc ->
+    Enum.reduce_while(numbers, {board_list, []}, fn x, {boards, acc} ->
       acc = [x | acc]
       wb = winning_boards(boards, acc)
+      remaining_boards = boards |> filter(fn b -> not member?(wb, b) end)
 
-      if empty?(wb),
-        do: {:cont, acc},
-        else: {:halt, x * (wb |> List.first() |> elem(0) |> extract_losers(acc) |> sum())}
+      if count(remaining_boards) == 0 do
+        {:halt, x * (wb |> List.first() |> elem(0) |> extract_losers(acc) |> sum())}
+      else
+        {:cont, {remaining_boards, acc}}
+      end
     end)
   end
 end
