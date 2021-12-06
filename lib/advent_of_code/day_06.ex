@@ -16,7 +16,7 @@ defmodule AdventOfCode.Day06 do
         if i == 0, do: [{6, qty}, {8, qty}], else: {i - 1, qty}
       end
       |> List.flatten()
-      |> reduce(%{}, fn {i, n}, acc -> Map.put(acc, i, n + Map.get(acc, i, 0)) end)
+      |> reduce(%{}, fn {i, n}, acc_map -> Map.put(acc_map, i, n + Map.get(acc_map, i, 0)) end)
     end)
     |> Map.values()
     |> sum()
