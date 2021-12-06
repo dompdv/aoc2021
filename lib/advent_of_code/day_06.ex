@@ -12,9 +12,8 @@ defmodule AdventOfCode.Day06 do
     1..n_generations
     |> reduce(fishes, fn _, acc ->
       for i <- 0..8 do
-        if i == 0,
-          do: [{6, Map.get(acc, 0, 0)}, {8, Map.get(acc, 0, 0)}],
-          else: {i - 1, Map.get(acc, i, 0)}
+        qty = Map.get(acc, i, 0)
+        if i == 0, do: [{6, qty}, {8, qty}], else: {i - 1, qty}
       end
       |> List.flatten()
       |> reduce(%{}, fn {i, n}, acc -> Map.put(acc, i, n + Map.get(acc, i, 0)) end)
