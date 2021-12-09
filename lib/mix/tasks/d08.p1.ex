@@ -22,6 +22,7 @@ defmodule Mix.Tasks.D08.P1 do
     gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce
     """
 '
+
     if Enum.member?(args, "-b"),
       do: Benchee.run(%{part_1: fn -> input |> part1() end}),
       else:

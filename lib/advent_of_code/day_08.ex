@@ -1,17 +1,18 @@
 defmodule AdventOfCode.Day08 do
   import Enum
- @numbers [
-  'abcefg',
-  'cf',
-  'acdeg',
-  'acdfg',
-  'bcdf',
-  'abdfg',
-  'abdefg',
-  'acf',
-  'abcdefg',
-  'abcdfg'
-]
+
+  @numbers [
+    'abcefg',
+    'cf',
+    'acdeg',
+    'acdfg',
+    'bcdf',
+    'abdfg',
+    'abdefg',
+    'acf',
+    'abcdefg',
+    'abcdfg'
+  ]
   def parse_line(line) do
     [left, right] = line |> String.split(" | ", trim: true)
     digits = right |> String.split(" ", trim: true) |> map(&to_charlist/1) |> map(&sort/1)
@@ -39,10 +40,10 @@ defmodule AdventOfCode.Day08 do
   def process_line({clues, digits}, possibilities) do
     m_clues = MapSet.new(clues)
 
-    ze_possibility = find(possibilities,&(MapSet.equal?(m_clues, MapSet.new(Map.keys(&1)))))
+    ze_possibility = find(possibilities, &MapSet.equal?(m_clues, MapSet.new(Map.keys(&1))))
 
     digits
-    |> map(&(ze_possibility[&1]))
+    |> map(&ze_possibility[&1])
     |> zip([1000, 100, 10, 1])
     |> map(fn {n, f} -> n * f end)
     |> sum()
@@ -60,7 +61,7 @@ defmodule AdventOfCode.Day08 do
       end)
 
     parse(args)
-    |> map(&(process_line(&1, all_possibilities)))
+    |> map(&process_line(&1, all_possibilities))
     |> sum()
   end
 end
