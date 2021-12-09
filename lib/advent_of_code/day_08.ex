@@ -39,11 +39,7 @@ defmodule AdventOfCode.Day08 do
   def process_line({clues, digits}, possibilities) do
     m_clues = MapSet.new(clues)
 
-    ze_possibility =
-      reduce_while(possibilities, 0, fn a_possib, _ ->
-        m_possib = MapSet.new(Map.keys(a_possib))
-        if MapSet.equal?(m_clues, m_possib), do: {:halt, a_possib}, else: {:cont, 0}
-      end)
+    ze_possibility = find(possibilities, fn a_possib -> MapSet.equal?(m_clues, MapSet.new(Map.keys(a_possib))) end)
 
     digits
     |> map(fn digit -> ze_possibility[digit] end)
