@@ -24,7 +24,7 @@ defmodule AdventOfCode.Day08 do
   def part1(args) do
     parse(args)
     |> map(fn {_, digits} ->
-      digits |> map(&count/1) |> filter(fn c -> member?([2, 4, 3, 7], c) end) |> count()
+      digits |> map(&count/1) |> filter(&member?([2, 4, 3, 7], &1)) |> count()
     end)
     |> sum()
   end
@@ -39,10 +39,10 @@ defmodule AdventOfCode.Day08 do
   def process_line({clues, digits}, possibilities) do
     m_clues = MapSet.new(clues)
 
-    ze_possibility = find(possibilities, fn a_possib -> MapSet.equal?(m_clues, MapSet.new(Map.keys(a_possib))) end)
+    ze_possibility = find(possibilities,&(MapSet.equal?(m_clues, MapSet.new(Map.keys(&1)))))
 
     digits
-    |> map(fn digit -> ze_possibility[digit] end)
+    |> map(&(ze_possibility[&1]))
     |> zip([1000, 100, 10, 1])
     |> map(fn {n, f} -> n * f end)
     |> sum()
@@ -53,14 +53,14 @@ defmodule AdventOfCode.Day08 do
       permutations('abcdefg')
       |> map(fn a_permutation ->
         @numbers
-        |> map(fn n -> apply_perm(n, a_permutation) end)
+        |> map(&apply_perm(&1, a_permutation))
         |> map(&sort/1)
         |> Enum.with_index()
         |> Map.new()
       end)
 
     parse(args)
-    |> map(fn line -> process_line(line, all_possibilities) end)
+    |> map(&(process_line(&1, all_possibilities)))
     |> sum()
   end
 end
