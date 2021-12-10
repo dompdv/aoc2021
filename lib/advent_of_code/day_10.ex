@@ -1,27 +1,22 @@
 defmodule AdventOfCode.Day10 do
   import Enum
 
-  @opening [?(, ?{, ?[, ?<]
   @matching %{?{ => ?}, ?( => ?), ?[ => ?], ?< => ?>}
   @scores %{?) => 3, ?] => 57, ?} => 1197, ?> => 25137}
   @scores2 %{?) => 1, ?] => 2, ?} => 3, ?> => 4}
 
   def analyze_line(line), do: analyze_line(line, [])
 
+  def analyze_line([], []), do: :success
   def analyze_line([], acc), do: {:incomplete, reverse(acc)}
+  def analyze_line([?( | tail], acc), do: analyze_line(tail, [?( | acc])
+  def analyze_line([?{ | tail], acc), do: analyze_line(tail, [?{ | acc])
+  def analyze_line([?[ | tail], acc), do: analyze_line(tail, [?[ | acc])
+  def analyze_line([?< | tail], acc), do: analyze_line(tail, [?< | acc])
+  def analyze_line([c | _tail], []), do: {c, []}
 
-  def analyze_line([c | tail], acc) do
-    if member?(@opening, c),
-      do: analyze_line(tail, [c | acc]),
-      else:
-        (case acc do
-           [] ->
-             {c, reverse(acc)}
-
-           [last | tail_acc] ->
-             if @matching[last] == c, do: analyze_line(tail, tail_acc), else: {c, reverse(acc)}
-         end)
-  end
+  def analyze_line([c | tail], [last | tail_acc] = acc),
+    do: if(@matching[last] == c, do: analyze_line(tail, tail_acc), else: {c, reverse(acc)})
 
   def part1(args) do
     args
