@@ -66,6 +66,7 @@ defmodule AdventOfCode.Day09 do
       |> map(fn {dr, dc} -> candidate(grid, acc, row, col, dr, dc) end)
       # petit truc pour simplifier les retours vides ( List.flatten([1, [], 2]) == [1,2])
       |> List.flatten()
+
     # relancer la recherche jusqu'à épuisement des cases à considérer
     spread(grid, to_add ++ r, to_add ++ acc)
   end
