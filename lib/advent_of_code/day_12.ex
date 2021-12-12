@@ -5,10 +5,7 @@ defmodule AdventOfCode.Day12 do
     edges =
       args
       |> String.split("\n", trim: true)
-      |> map(fn line ->
-        [from, to] = String.split(line, "-")
-        {from, to}
-      end)
+      |> map(fn line -> String.split(line, "-") |> List.to_tuple() end)
 
     navigation =
       reduce(edges, %{}, fn {from, to}, nav ->
@@ -26,9 +23,9 @@ defmodule AdventOfCode.Day12 do
     {navigation, large}
   end
 
-  def visit("end", _visited_nodes, _navigation, _large_caves, path), do: [["end" | path]]
+  def visit("end", path, _visited_nodes, _navigation, _large_caves), do: [["end" | path]]
 
-  def visit(current_node, visited_nodes, navigation, large_caves, path) do
+  def visit(current_node, path, visited_nodes, navigation, large_caves) do
     nodes_to_visit =
       navigation[current_node]
       |> filter(fn n ->
@@ -44,7 +41,7 @@ defmodule AdventOfCode.Day12 do
             do: visited_nodes,
             else: MapSet.put(visited_nodes, node_to_visit)
 
-        visit(node_to_visit, visited_nodes, navigation, large_caves, [current_node | path]) ++
+        visit(node_to_visit, [current_node | path], visited_nodes, navigation, large_caves) ++
           acc
       end
     )
@@ -52,13 +49,12 @@ defmodule AdventOfCode.Day12 do
 
   def part1(args) do
     {navigation, large_caves} = parse(args)
-    visit("start", MapSet.new(["start"]), navigation, large_caves, []) |> count()
-    #    |> map(&reverse/1)
+    visit("start", [], MapSet.new(["start"]), navigation, large_caves) |> count()
   end
 
-  def visit2("end", _visited_nodes, _joker, _navigation, _large_caves, path), do: [["end" | path]]
+  def visit2("end", path, _visited_nodes, _joker, _navigation, _large_caves), do: [["end" | path]]
 
-  def visit2(current_node, visited_nodes, joker, navigation, large_caves, path) do
+  def visit2(current_node, path, visited_nodes, joker, navigation, large_caves) do
     nodes_to_visit =
       if joker do
         navigation[current_node]
@@ -71,7 +67,6 @@ defmodule AdventOfCode.Day12 do
         |> filter(&(&1 != "start"))
       end
 
-    # IO.inspect({joker, current_node, nodes_to_visit, visited_nodes})
     reduce(
       nodes_to_visit,
       [],
@@ -80,16 +75,15 @@ defmodule AdventOfCode.Day12 do
           not MapSet.member?(large_caves, node_to_visit) and joker == false and
             MapSet.member?(visited_nodes, node_to_visit)
 
-        new_joker = if activate_joker, do: true, else: joker
+        joker = if activate_joker, do: true, else: joker
 
-        new_visited =
+        visited =
           if MapSet.member?(large_caves, node_to_visit),
             do: visited_nodes,
             else: MapSet.put(visited_nodes, node_to_visit)
 
-        visit2(node_to_visit, new_visited, new_joker, navigation, large_caves, [
-          current_node | path
-        ]) ++ acc
+        visit2(node_to_visit, [current_node | path], visited, joker, navigation, large_caves) ++
+          acc
       end
     )
   end
@@ -97,7 +91,7 @@ defmodule AdventOfCode.Day12 do
   def part2(args) do
     {navigation, large_caves} = parse(args)
 
-    visit2("start", MapSet.new(["start"]), false, navigation, large_caves, [])
+    visit2("start", [], MapSet.new(["start"]), false, navigation, large_caves)
     |> count()
   end
 end
