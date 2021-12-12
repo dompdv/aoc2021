@@ -79,8 +79,6 @@ defmodule AdventOfCode.Day12 do
 
   def part2(args) do
     navigation = parse(args)
-
-    visit2("start", [], MapSet.new(["start"]), false, navigation)
-    |> count()
+    visit2("start", [], MapSet.new(["start"]), false, navigation) |> count()
   end
 end
