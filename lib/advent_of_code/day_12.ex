@@ -46,16 +46,11 @@ defmodule AdventOfCode.Day12 do
 
   def visit2(current_node, path, visited_nodes, joker, navigation) do
     nodes_to_visit =
-      if joker do
-        navigation[current_node]
-        |> filter(fn {n, type_node} ->
-          type_node == :large or not MapSet.member?(visited_nodes, n)
-        end)
-        |> filter(&(&1 != "start"))
-      else
-        navigation[current_node]
-        |> filter(&(elem(&1, 0) != "start"))
-      end
+      navigation[current_node]
+      |> filter(fn {n, type_node} ->
+        if joker, do: type_node == :large or not MapSet.member?(visited_nodes, n), else: true
+      end)
+      |> filter(&(elem(&1, 0) != "start"))
 
     reduce(
       nodes_to_visit,
