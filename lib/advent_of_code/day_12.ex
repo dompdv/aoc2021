@@ -61,11 +61,11 @@ defmodule AdventOfCode.Day12 do
       nodes_to_visit,
       [],
       fn {node_to_visit, type_node}, acc ->
-        activate_joker =
-          type_node == :small and joker == false and
-            MapSet.member?(visited_nodes, node_to_visit)
-
-        joker = if activate_joker, do: true, else: joker
+        joker =
+          if type_node == :small and joker == false and
+               MapSet.member?(visited_nodes, node_to_visit),
+             do: true,
+             else: joker
 
         visited =
           if type_node == :large,
