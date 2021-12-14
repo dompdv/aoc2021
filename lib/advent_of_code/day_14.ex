@@ -8,6 +8,7 @@ defmodule AdventOfCode.Day14 do
      rules
      |> String.split("\n", trim: true)
      |> map(fn line -> line |> String.split(" -> ") |> map(&to_charlist/1) |> List.to_tuple() end)
+     |> map(fn {g, d} -> {g, hd(d)} end)
      |> Map.new()}
   end
 
@@ -16,7 +17,7 @@ defmodule AdventOfCode.Day14 do
     |> map(fn {[g, d] = doublet, n} ->
       case Map.get(rules, doublet) do
         nil -> {doublet, n}
-        v -> [{[g, hd(v)], n}, {[hd(v), d], n}]
+        v -> [{[g, v], n}, {[v, d], n}]
       end
     end)
     |> List.flatten()
