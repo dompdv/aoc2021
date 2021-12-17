@@ -33,18 +33,6 @@ defmodule AdventOfCode.Day15 do
       left ++ [c | right]
     end
 
-
-#  def pqueue_add(list, c), do: pqueue_add(c, list, [])
-#  def pqueue_add(nil, [], acc), do: reverse(acc)
-#  def pqueue_add(c, [], acc), do: reverse([c | acc])
-
- # def pqueue_add(nil, [d | r], acc), do: pqueue_add(nil, r, [d | acc])
-
- # def pqueue_add({_, dc} = c, [{_, dd} = d | r], acc) when dc > dd,
- #   do: pqueue_add(c, r, [d | acc])
-
- # def pqueue_add(c, [d | r], acc), do: pqueue_add(nil, r, [d, c | acc])
-
   def spread(grid) do
     max_dim = Map.keys(grid) |> map(&Tuple.to_list/1) |> List.flatten() |> max()
     dist = for({k, _} <- grid, into: %{}, do: {k, 10 * max_dim * max_dim}) |> Map.put({0, 0}, 0)
@@ -67,8 +55,7 @@ defmodule AdventOfCode.Day15 do
       |> map(fn {dr, dc} -> {row + dr, col + dc} end)
       |> filter(fn {r, c} -> r >= 0 and c >= 0 and r <= max_dim and c <= max_dim end)
 
-    #IO.inspect({dist, pqueue, max_dim})
-    {dist, rpqueue} =
+      {dist, rpqueue} =
       reduce(
         neighbours,
         {dist, rpqueue},
@@ -87,8 +74,6 @@ defmodule AdventOfCode.Day15 do
   def part1(args) do
     grid = parse(args)
     dist = spread(grid)
-    #for row <- 0..99, do: (for col <- 0..99, do: dist[{row, col}])
-
     max_dim = Map.keys(grid) |> map(&Tuple.to_list/1) |> List.flatten() |> max()
     dist[{max_dim, max_dim}]
   end
@@ -106,7 +91,6 @@ defmodule AdventOfCode.Day15 do
 
     dist = spread(new_grid)
     max_dim = Map.keys(new_grid) |> map(&Tuple.to_list/1) |> List.flatten() |> max()
-    for row <- 0..max_dim, do: (for col <- 0..max_dim, do: new_grid[{row, col}])
     dist[{max_dim, max_dim}]
   end
 end
