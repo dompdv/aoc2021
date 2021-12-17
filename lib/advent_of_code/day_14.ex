@@ -17,8 +17,10 @@ defmodule AdventOfCode.Day14 do
     # pour chaque doublet -> frequence
     |> map(fn {[g, d] = doublet, n} ->
       case Map.get(rules, doublet) do
-        nil -> {doublet, n} # pas de règle à appliquer, on ne touche à rien
-        v -> [{[g, v], n}, {[v, d], n}] # le doublet se transforme en deux autres doublets
+        # pas de règle à appliquer, on ne touche à rien
+        nil -> {doublet, n}
+        # le doublet se transforme en deux autres doublets
+        v -> [{[g, v], n}, {[v, d], n}]
       end
     end)
     # suppression des listes imbriquées
