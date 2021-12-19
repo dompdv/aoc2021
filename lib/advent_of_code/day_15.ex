@@ -24,20 +24,20 @@ defmodule AdventOfCode.Day15 do
       max_dim
     )
   end
-  def min_dist([], _dist, _current_min, current_node), do: current_node
+  def min_dist([], _dist, _current_min, current_node,acc), do: {current_node, acc}
 
-  def min_dist([elt | r], dist, current_min, current_node) do
+  def min_dist([elt | r], dist, current_min, current_node, acc) do
       d = dist[elt]
       if d < current_min,
-        do: min_dist(r, dist, d, elt),
-        else: min_dist(r, dist, current_min, current_node)
+        do: min_dist(r, dist, d, elt, (if current_node == nil, do: acc, else: [current_node | acc])),
+        else: min_dist(r, dist, current_min, current_node, [elt | acc])
 end
 def spread(dist, [], _grid, _max_dim), do: dist
 
   def spread(dist, pqueue, grid, max_dim) do
       if :rand.uniform() > 0.99, do: IO.inspect(count(pqueue))
       # IO.inspect(pqueue)
-      {row, col} = elt = min_dist(pqueue, dist, 10 * max_dim * max_dim, nil)
+      {{row, col}, new_queue} = min_dist(pqueue, dist, 10 * max_dim * max_dim, nil, [])
 
       neighbours =
         @neighbours
@@ -57,7 +57,7 @@ def spread(dist, [], _grid, _max_dim), do: dist
           end
         )
 
-      spread(dist, List.delete(pqueue, elt), grid, max_dim)
+      spread(dist, new_queue, grid, max_dim)
   end
 
   def part1(args) do
