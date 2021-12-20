@@ -17,6 +17,7 @@ defmodule AdventOfCode.Day15 do
     cells = Map.keys(grid)
     max_dim = cells |> map(&Tuple.to_list/1) |> List.flatten() |> max()
     dist = for({k, _} <- grid, into: %{}, do: {k, 10 * max_dim * max_dim}) |> Map.put({0, 0}, 0)
+
     spread(
       dist,
       cells,
@@ -24,40 +25,43 @@ defmodule AdventOfCode.Day15 do
       max_dim
     )
   end
-  def min_dist([], _dist, _current_min, current_node,acc), do: {current_node, acc}
+
+  def min_dist([], _dist, _current_min, current_node, acc), do: {current_node, acc}
 
   def min_dist([elt | r], dist, current_min, current_node, acc) do
-      d = dist[elt]
-      if d < current_min,
-        do: min_dist(r, dist, d, elt, (if current_node == nil, do: acc, else: [current_node | acc])),
-        else: min_dist(r, dist, current_min, current_node, [elt | acc])
-end
-def spread(dist, [], _grid, _max_dim), do: dist
+    d = dist[elt]
+
+    if d < current_min,
+      do: min_dist(r, dist, d, elt, if(current_node == nil, do: acc, else: [current_node | acc])),
+      else: min_dist(r, dist, current_min, current_node, [elt | acc])
+  end
+
+  def spread(dist, [], _grid, _max_dim), do: dist
 
   def spread(dist, pqueue, grid, max_dim) do
-      if :rand.uniform() > 0.99, do: IO.inspect(count(pqueue))
-      # IO.inspect(pqueue)
-      {{row, col}, new_queue} = min_dist(pqueue, dist, 10 * max_dim * max_dim, nil, [])
+    if :rand.uniform() > 0.99, do: IO.inspect(count(pqueue))
+    # IO.inspect(pqueue)
+    {{row, col}, new_queue} = min_dist(pqueue, dist, 10 * max_dim * max_dim, nil, [])
 
-      neighbours =
-        @neighbours
-        |> map(fn {dr, dc} -> {row + dr, col + dc} end)
-        |> filter(fn {r, c} -> r >= 0 and c >= 0 and r <= max_dim and c <= max_dim end)
+    neighbours =
+      @neighbours
+      |> map(fn {dr, dc} -> {row + dr, col + dc} end)
+      |> filter(fn {r, c} -> r >= 0 and c >= 0 and r <= max_dim and c <= max_dim end)
 
-      dist =
-        reduce(
-          neighbours,
-          dist,
-          fn {r, c}, dist ->
-            alt = dist[{row, col}] + grid[{r, c}]
+    dist =
+      reduce(
+        neighbours,
+        dist,
+        fn {r, c}, dist ->
+          alt = dist[{row, col}] + grid[{r, c}]
 
-            if alt >= dist[{r, c}],
-              do: dist,
-              else: Map.put(dist, {r, c}, alt)
-          end
-        )
+          if alt >= dist[{r, c}],
+            do: dist,
+            else: Map.put(dist, {r, c}, alt)
+        end
+      )
 
-      spread(dist, new_queue, grid, max_dim)
+    spread(dist, new_queue, grid, max_dim)
   end
 
   def part1(args) do
