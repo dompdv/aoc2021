@@ -88,7 +88,7 @@ defmodule AdventOfCode.Day18 do
   # Returns a list of the Paths leading to numbers in the tree.
   # The list is ordered from the left to the right of the tree structure
   def list_numbers(tree), do: list_numbers([], tree, []) |> reverse()
-  def list_numbers(paths, {:num, v, _}, l), do: [{reverse(l),v} | paths]
+  def list_numbers(paths, {:num, v, _}, l), do: [{reverse(l), v} | paths]
 
   def list_numbers(paths, {:pair, le, ri, _}, l) do
     paths |> list_numbers(le, [:left | l]) |> list_numbers(ri, [:right | l])
@@ -103,7 +103,7 @@ defmodule AdventOfCode.Day18 do
   def tree_apply({:pair, le, ri, level}, [:right | l], f),
     do: {:pair, le, tree_apply(ri, l, f), level}
 
-    # Print a tree in a standard way
+  # Print a tree in a standard way
   def print_tree({:num, val, _level}), do: Integer.to_string(val)
 
   def print_tree({:pair, le, ri, _level}) do
@@ -113,35 +113,40 @@ defmodule AdventOfCode.Day18 do
   end
 
   def explode(tree) do
-   explosion = detect_explode(tree)
-   if explosion == false do
-    {false, tree}
-   else
-    # there is a Node to explode
-    {path, le_value, ri_value} = explosion
-    # Replace the pair by 0
-    tree = nullify(tree, path)
-    # Identify all the numbers
-    paths_for_numbers = list_numbers(tree) |> map(&(elem(&1,0)))
-    # Find the path in the list
-    # lexicographic order is implemented by default in Elixir and :left < :right
-    index = find_index(paths_for_numbers, fn x -> x >= path end)
-    # Add value to the left
-    tree =
-      if index <= 0,
-        do: tree,
-        else: tree_apply(tree, at(paths_for_numbers, index - 1), fn x -> x + le_value end)
-    # Add value to the right
-    tree =
-      if index + 1 >= count(paths_for_numbers),
-        do: tree,
-        else: tree_apply(tree, at(paths_for_numbers, index + 1), fn x -> x + ri_value end)
-    {true, tree}
-   end
+    explosion = detect_explode(tree)
+
+    if explosion == false do
+      {false, tree}
+    else
+      # there is a Node to explode
+      {path, le_value, ri_value} = explosion
+      # Replace the pair by 0
+      tree = nullify(tree, path)
+      # Identify all the numbers
+      paths_for_numbers = list_numbers(tree) |> map(&elem(&1, 0))
+      # Find the path in the list
+      # lexicographic order is implemented by default in Elixir and :left < :right
+      index = find_index(paths_for_numbers, fn x -> x >= path end)
+      # Add value to the left
+      tree =
+        if index <= 0,
+          do: tree,
+          else: tree_apply(tree, at(paths_for_numbers, index - 1), fn x -> x + le_value end)
+
+      # Add value to the right
+      tree =
+        if index + 1 >= count(paths_for_numbers),
+          do: tree,
+          else: tree_apply(tree, at(paths_for_numbers, index + 1), fn x -> x + ri_value end)
+
+      {true, tree}
+    end
   end
 
   # Replace a number with a given path by a pair
-  def split_node({:num, v, level}, []), do: {:pair, {:num, div(v,2), level + 1}, {:num, v - div(v,2), level + 1}, level}
+  def split_node({:num, v, level}, []),
+    do: {:pair, {:num, div(v, 2), level + 1}, {:num, v - div(v, 2), level + 1}, level}
+
   def split_node({:pair, le, ri, level}, [:left | l]), do: {:pair, split_node(le, l), ri, level}
   def split_node({:pair, le, ri, level}, [:right | l]), do: {:pair, le, split_node(ri, l), level}
 
@@ -153,6 +158,7 @@ defmodule AdventOfCode.Day18 do
 
   def reduce_tree(tree) do
     {res, tree} = explode(tree)
+
     if not res do
       {res, tree} = split(tree)
       if not res, do: tree, else: reduce_tree(tree)
@@ -160,24 +166,28 @@ defmodule AdventOfCode.Day18 do
       reduce_tree(tree)
     end
   end
-  def part1(_args) do
-    tree =
-      #"[[[[[9,8],1],2],3],4]"
-      #"[7,[6,[5,[4,[3,2]]]]]"
-      #"[[6,[5,[4,[3,2]]]],1]"
-      #"[1,[2,3]]"
-      #"[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]"
-      #"[[[[0,7],4],[15,[0,13]]],[1,1]]"
-      "[[[[[4,3],4],4],[7,[[8,4],9]]],[1,1]]"
-      |> to_charlist()
-      |> tokenize()
-      |> pair()
-      |> elem(0)
-      |> add_levels(0)
 
-    IO.inspect({"regurgite:", print_tree(tree)})
-    reduce_tree(tree) |> print_tree()
-    #tree |> print_tree()
+  def magnitude({:num, v, _}), do: v
+  def magnitude({:pair, le, ri, _}), do: 3 * magnitude(le) + 2 * magnitude(ri)
+
+  def parse_tree(line) do
+    line
+    |> to_charlist()
+    |> tokenize()
+    |> pair()
+    |> elem(0)
+    |> add_levels(0)
+  end
+
+  def part1(args) do
+    args
+    |> String.split("\n", trim: true)
+    |> reduce(fn b, a ->
+      IO.inspect({a, b})
+      reduce_tree(parse_tree("[#{a},#{b}]")) |> print_tree()
+    end)
+    |> parse_tree()
+    |> magnitude()
   end
 
   def part2(_args) do
