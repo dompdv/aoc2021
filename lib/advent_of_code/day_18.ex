@@ -156,6 +156,7 @@ defmodule AdventOfCode.Day18 do
     if candidate == nil, do: {false, tree}, else: {true, split_node(tree, elem(candidate, 0))}
   end
 
+  # apply explode and split until nothing can be done
   def reduce_tree(tree) do
     {res, tree} = explode(tree)
 
@@ -167,9 +168,11 @@ defmodule AdventOfCode.Day18 do
     end
   end
 
+  # compute the magnitude of a tree
   def magnitude({:num, v, _}), do: v
   def magnitude({:pair, le, ri, _}), do: 3 * magnitude(le) + 2 * magnitude(ri)
 
+  # From a string to a tree
   def parse_tree(line) do
     line
     |> to_charlist()
@@ -182,14 +185,16 @@ defmodule AdventOfCode.Day18 do
   def part1(args) do
     args
     |> String.split("\n", trim: true)
-    |> reduce(fn b, a ->
-      IO.inspect({a, b})
+    # sums all numbers
+    |> reduce(fn b, a -> # !! non commutative !!
       reduce_tree(parse_tree("[#{a},#{b}]")) |> print_tree()
     end)
     |> parse_tree()
     |> magnitude()
   end
 
-  def part2(_args) do
+  def part2(args) do
+    numbers = args |> String.split("\n", trim: true)
+    max((for n1 <- numbers, n2 <- numbers, n1 != n2, do: reduce_tree(parse_tree("[#{n1},#{n2}]")) |> magnitude()))
   end
 end
