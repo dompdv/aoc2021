@@ -88,7 +88,7 @@ defmodule AdventOfCode.Day18 do
   # Returns a list of the Paths leading to numbers in the tree.
   # The list is ordered from the left to the right of the tree structure
   def list_numbers(tree), do: list_numbers([], tree, []) |> reverse()
-  def list_numbers(paths, {:num, _, _}, l), do: [reverse(l) | paths]
+  def list_numbers(paths, {:num, v, _}, l), do: [{reverse(l),v} | paths]
 
   def list_numbers(paths, {:pair, le, ri, _}, l) do
     paths |> list_numbers(le, [:left | l]) |> list_numbers(ri, [:right | l])
@@ -122,7 +122,7 @@ defmodule AdventOfCode.Day18 do
     # Replace the pair by 0
     tree = nullify(tree, path)
     # Identify all the numbers
-    paths_for_numbers = list_numbers(tree)
+    paths_for_numbers = list_numbers(tree) |> map(&(elem(&1,0)))
     # Find the path in the list
     # lexicographic order is implemented by default in Elixir and :left < :right
     index = find_index(paths_for_numbers, fn x -> x >= path end)
@@ -139,13 +139,22 @@ defmodule AdventOfCode.Day18 do
     {true, tree}
    end
   end
+
+  def split_node({:num, v, level}, []), do: {:pair, {:num, div(v,2), level + 1}, {:num, v - div(v,2), level + 1}, level}
+  def split_node({:pair, le, ri, level}, [:left | l]), do: {:pair, split_node(le, l), ri, level}
+  def split_node({:pair, le, ri, level}, [:right | l]), do: {:pair, le, split_node(ri, l), level}
+  def split(tree) do
+    candidate = list_numbers(tree) |> filter(fn {_, number} -> number >= 10 end) |> List.first()
+    if candidate == nil, do: tree, else: split_node(tree, elem(candidate, 0))
+  end
   def part1(_args) do
     tree =
       #"[[[[[9,8],1],2],3],4]"
-      # "[7,[6,[5,[4,[3,2]]]]]"
+      #"[7,[6,[5,[4,[3,2]]]]]"
       #"[[6,[5,[4,[3,2]]]],1]"
-       "[1,[2,3]]"
+      #"[1,[2,3]]"
       #"[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]"
+      "[[[[0,7],4],[15,[0,13]]],[1,1]]"
       |> to_charlist()
       |> tokenize()
       |> pair()
@@ -154,7 +163,8 @@ defmodule AdventOfCode.Day18 do
 
     IO.inspect({"regurgite:", print_tree(tree)})
     {_, tree} = explode(tree)
-    tree |> print_tree()
+    split(tree) |> print_tree()
+    #tree |> print_tree()
   end
 
   def part2(_args) do
