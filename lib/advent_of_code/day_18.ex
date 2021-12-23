@@ -140,12 +140,25 @@ defmodule AdventOfCode.Day18 do
    end
   end
 
+  # Replace a number with a given path by a pair
   def split_node({:num, v, level}, []), do: {:pair, {:num, div(v,2), level + 1}, {:num, v - div(v,2), level + 1}, level}
   def split_node({:pair, le, ri, level}, [:left | l]), do: {:pair, split_node(le, l), ri, level}
   def split_node({:pair, le, ri, level}, [:right | l]), do: {:pair, le, split_node(ri, l), level}
+
+  # Split the leftmost number of the tree which is >= 10
   def split(tree) do
     candidate = list_numbers(tree) |> filter(fn {_, number} -> number >= 10 end) |> List.first()
-    if candidate == nil, do: tree, else: split_node(tree, elem(candidate, 0))
+    if candidate == nil, do: {false, tree}, else: {true, split_node(tree, elem(candidate, 0))}
+  end
+
+  def reduce_tree(tree) do
+    {res, tree} = explode(tree)
+    if not res do
+      {res, tree} = split(tree)
+      if not res, do: tree, else: reduce_tree(tree)
+    else
+      reduce_tree(tree)
+    end
   end
   def part1(_args) do
     tree =
@@ -154,7 +167,8 @@ defmodule AdventOfCode.Day18 do
       #"[[6,[5,[4,[3,2]]]],1]"
       #"[1,[2,3]]"
       #"[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]"
-      "[[[[0,7],4],[15,[0,13]]],[1,1]]"
+      #"[[[[0,7],4],[15,[0,13]]],[1,1]]"
+      "[[[[[4,3],4],4],[7,[[8,4],9]]],[1,1]]"
       |> to_charlist()
       |> tokenize()
       |> pair()
@@ -162,8 +176,7 @@ defmodule AdventOfCode.Day18 do
       |> add_levels(0)
 
     IO.inspect({"regurgite:", print_tree(tree)})
-    {_, tree} = explode(tree)
-    split(tree) |> print_tree()
+    reduce_tree(tree) |> print_tree()
     #tree |> print_tree()
   end
 
