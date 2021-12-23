@@ -34,10 +34,9 @@ defmodule AdventOfCode.Day17 do
   end
 
   def part1(_args) do
-    #x=117..164, y=-140..-89
+    # x=117..164, y=-140..-89
     x_range = 117..164
     y_range = -140..-89
-
 
     grid = for vx <- 1..(x_range.last + 1), vy <- -200..1000, do: {vx, vy}
 
@@ -47,13 +46,14 @@ defmodule AdventOfCode.Day17 do
       {v, trajectory |> elem(0), trajectory |> elem(1) |> map(&elem(&1, 1)) |> max()}
     end)
     |> filter(fn {_, s, _} -> s == :boum end)
-    |> map(&(elem(&1, 2)))  |> max()
+    |> map(&elem(&1, 2))
+    |> max()
   end
 
+  @spec part2(any) :: non_neg_integer
   def part2(_args) do
     x_range = 117..164
     y_range = -140..-89
-
 
     grid = for vx <- 1..(x_range.last + 1), vy <- -200..1000, do: {vx, vy}
 
