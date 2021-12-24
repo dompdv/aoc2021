@@ -186,7 +186,8 @@ defmodule AdventOfCode.Day18 do
     args
     |> String.split("\n", trim: true)
     # sums all numbers
-    |> reduce(fn b, a -> # !! non commutative !!
+    # !! non commutative !!
+    |> reduce(fn b, a ->
       reduce_tree(parse_tree("[#{a},#{b}]")) |> print_tree()
     end)
     |> parse_tree()
@@ -195,6 +196,12 @@ defmodule AdventOfCode.Day18 do
 
   def part2(args) do
     numbers = args |> String.split("\n", trim: true)
-    max((for n1 <- numbers, n2 <- numbers, n1 != n2, do: reduce_tree(parse_tree("[#{n1},#{n2}]")) |> magnitude()))
+
+    max(
+      for n1 <- numbers,
+          n2 <- numbers,
+          n1 != n2,
+          do: reduce_tree(parse_tree("[#{n1},#{n2}]")) |> magnitude()
+    )
   end
 end
