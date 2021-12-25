@@ -1,18 +1,13 @@
 defmodule AdventOfCode.Day19 do
   import Enum
 
-  @flip [[0, 1, 2], [2, 0, 1], [1, 2, 0]]
-  @inversions [
-    [1, 1, 1],
-    [1, 1, -1],
-    [1, -1, 1],
-    [1, -1, -1],
-    [-1, 1, 1],
-    [-1, 1, -1],
-    [-1, -1, 1],
-    [-1, -1, -1]
-  ]
+#  @flip [[0, 1, 2], [2, 0, 1], [1, 2, 0]]
+  @flip [[0, 1, 2], [0, 2, 1], [1, 0, 2],[1, 2, 0], [2, 0, 1], [2, 1, 0]]
+  @inversions for x <- [-1, 1], y <- [-1, 1], z <- [-1, 1], do: [x, y, z]
   @transfos for f <- @flip, i <- @inversions, do: {f, i}
+
+  def parse(args),
+    do: args |> String.split("\n\n", trim: true) |> map(&parse_scanner/1) |> Map.new()
 
   def parse_scanner(scanner) do
     [head | lines] = String.split(scanner, "\n", trim: true)
@@ -27,49 +22,8 @@ defmodule AdventOfCode.Day19 do
     {String.to_integer(scanner_number), lines}
   end
 
-  def scalars(scanner, index) do
-    {x0, y0, z0} = at(scanner, 0)
-    origin_b_0 = scanner |> map(fn {x, y, z} -> {x - x0, y - y0, z - z0} end)
-
-    for {{x1, y1, z1}, _i} <- with_index(origin_b_0),
-        {{x2, y2, z2}, _j} <- with_index(origin_b_0),
-        do: x1 * x2 + y1 * y2 + z1 * z2
-  end
-
   def move_scanner(scanner, {x, y, z}),
     do: map(scanner, fn {x1, y1, z1} -> {x + x1, y + y1, z + z1} end)
-
-  def dist_scanners(scanner1, scanner2, p) do
-    scanner2 = move_scanner(scanner2, p)
-
-    distances =
-      for(
-        {x2, y2, z2} <- scanner2,
-        do:
-          for(
-            {x1, y1, z1} <- scanner1,
-            do: (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) + (z1 - z2) * (z1 - z2)
-          )
-          |> min()
-          |> :math.sqrt()
-      )
-
-    nuls = filter(distances, &(&1 == 0)) |> count()
-
-    # IO.inspect({"nulllllls", nuls})
-    sum(distances)
-  end
-
-  def gradient(scanner1, scanner2, {x, y, z}) do
-    d = dist_scanners(scanner1, scanner2, {x, y, z})
-    dx = dist_scanners(scanner1, scanner2, {x + 1, y, z})
-    dy = dist_scanners(scanner1, scanner2, {x, y + 1, z})
-    dz = dist_scanners(scanner1, scanner2, {x, y, z + 1})
-    {{dx - d, dy - d, dz - d}, d}
-  end
-
-  def move({x, y, z}, {gx, gy, gz}, alpha),
-    do: {round(x + alpha * gx), round(y + alpha * gy), round(z + alpha * gz)}
 
   def apply_transfo(scanner, {[f0, f1, f2], [i0, i1, i2]}) do
     scanner
@@ -78,48 +32,70 @@ defmodule AdventOfCode.Day19 do
     end)
   end
 
-  def part1(args) do
-    scanners = args |> String.split("\n\n", trim: true) |> map(&parse_scanner/1) |> Map.new()
-    alpha = 0.5
+  def scan_coord(scan0, scan1, axis) do
+    x0s = scan0 |> map(&elem(&1, axis)) |> MapSet.new()
+    scan1_proj = scan1 |> map(&elem(&1, axis))
 
-    Map.put(scanners, 1, move_scanner(scanners[0], {50, 20, 30}))
+    {min0_c, max0_c} = min_max(x0s)
+    {min1_c, max1_c} = min_max(scan1_proj)
+    m = [min0_c, max0_c, min1_c, max1_c] |> map(&abs(&1)) |> max()
 
-    a = [
-      @transfos
-      |> List.first()
-    ]
-
-    a
-    |> map(fn transfo ->
-      scanner1 = apply_transfo(scanners[1], transfo)
-
-      res =
-        Stream.iterate({{0, 0, 0}, nil, nil, 0}, fn {{x, y, z}, _g, _d, step} = r ->
-          IO.inspect({">", r})
-          {{gx, gy, gz}, d} = gradient(scanners[0], scanner1, {x, y, z})
-          {move({x, y, z}, {gx, gy, gz}, alpha), {gx, gy, gz}, d, step + 1}
-        end)
-        |> Stream.drop_while(fn {_, _, _, step} -> step < 100 end)
-        |> take(1)
-
-      IO.inspect({transfo, res})
-    end)
-
-    :ok
+    search =
+      (-1000 - m)..(m + 1000)
+      |> filter(fn coord ->
+        x1s = (map(scan1_proj, fn x-> x + coord end))|> MapSet.new()
+        MapSet.intersection(x0s, x1s) |> MapSet.size() >= 12
+      end)
+    if count(search) > 1, do: IO.inspect({"plusieurs", search})
+    if empty?(search), do: false, else: hd(search)
   end
 
-  def part1_old(args) do
-    scanners = args |> String.split("\n\n", trim: true) |> map(&parse_scanner/1) |> Map.new()
+  def find_first_overlap(scanners) do
+    for({i, scan0} <- scanners, {j, scan1} <- scanners, i < j, do: {i, scan0, j, scan1})
+    |> reduce_while(
+      nil,
+      fn {i, scan0, j, scan1}, _ ->
+        IO.inspect({i, j})
 
-    # origin_b_0 = scanners[0] |> map(fn {x,y,z} -> {x-x0, y-y0, z-z0} end)
-    # scalar_b_0 = (for {{x1,y1,z1},i} <- with_index(origin_b_0), {{x2,y2,z2},j} <- with_index(origin_b_0), do: {i,j, x1*x2 + y1*y2 + z1*z2})
+        common =
+          @transfos
+          |> map(fn transfo ->
+            {transfo,
+             map(0..2, fn axis -> scan_coord(scan0, apply_transfo(scan1, transfo), axis) end)}
+          end)
+          |> filter(fn {_, [x, y, z]} -> x != false and y != false and z != false end)
 
-    for i0 <- 0..(count(scanners[0]) - 1), i1 <- 0..(count(scanners[1]) - 1) do
-      s0 = MapSet.new(scalars(scanners[0], i0))
-      s1 = MapSet.new(scalars(scanners[1], i1))
-      MapSet.intersection(s0, s1) |> count()
+        if empty?(common), do: {:cont, nil}, else: {:halt, {i, j, common}}
+      end
+    )
+  end
+
+  def merge_scanners(scan0, scan1, transfo, {x, y, z} = move_by) do
+    IO.inspect({"merge",transfo, move_by})
+    new_scan1 = scan1 |> apply_transfo(transfo) |> move_scanner({x, y, z})
+    MapSet.union(MapSet.new(new_scan1), MapSet.new(scan0)) |> MapSet.to_list()
+  end
+
+  def reduce_scanners(scanners) do
+    if count(scanners) == 1 do
+      scanners
+    else
+      IO.inspect({"reduce", count(scanners)})
+
+      case find_first_overlap(scanners) do
+        nil ->
+          scanners
+
+        {i, j, [{transfo, [x, y, z]}]} ->
+          new_scan0 = merge_scanners(scanners[i], scanners[j], transfo, {x, y, z})
+          reduce_scanners(scanners |> Map.delete(j) |> Map.put(i, new_scan0))
+      end
     end
-    |> filter(&(&1 > 2))
+  end
+
+  def part1(args) do
+    parse(args)|> reduce_scanners()  |> Map.to_list() |> List.first() |> elem(1) |> MapSet.new() |> count()
+#    Map.new([{0, scanners[0]}, {2, scanners[2]}])
   end
 
   def part2(_args) do
