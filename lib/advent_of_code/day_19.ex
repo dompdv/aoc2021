@@ -1,8 +1,8 @@
 defmodule AdventOfCode.Day19 do
   import Enum
 
-#  @flip [[0, 1, 2], [2, 0, 1], [1, 2, 0]]
-  @flip [[0, 1, 2], [0, 2, 1], [1, 0, 2],[1, 2, 0], [2, 0, 1], [2, 1, 0]]
+  #  @flip [[0, 1, 2], [2, 0, 1], [1, 2, 0]]
+  @flip [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]
   @inversions for x <- [-1, 1], y <- [-1, 1], z <- [-1, 1], do: [x, y, z]
   @transfos for f <- @flip, i <- @inversions, do: {f, i}
 
@@ -41,11 +41,12 @@ defmodule AdventOfCode.Day19 do
     m = [min0_c, max0_c, min1_c, max1_c] |> map(&abs(&1)) |> max()
 
     search =
-      (-1000 - m)..(m + 1000)
+      (-2 * m)..(2 * m)
       |> filter(fn coord ->
-        x1s = (map(scan1_proj, fn x-> x + coord end))|> MapSet.new()
+        x1s = map(scan1_proj, fn x -> x + coord end) |> MapSet.new()
         MapSet.intersection(x0s, x1s) |> MapSet.size() >= 12
       end)
+
     if count(search) > 1, do: IO.inspect({"plusieurs", search})
     if empty?(search), do: false, else: hd(search)
   end
@@ -71,7 +72,7 @@ defmodule AdventOfCode.Day19 do
   end
 
   def merge_scanners(scan0, scan1, transfo, {x, y, z} = move_by) do
-    IO.inspect({"merge",transfo, move_by})
+    IO.inspect({"merge", transfo, move_by})
     new_scan1 = scan1 |> apply_transfo(transfo) |> move_scanner({x, y, z})
     MapSet.union(MapSet.new(new_scan1), MapSet.new(scan0)) |> MapSet.to_list()
   end
@@ -94,8 +95,15 @@ defmodule AdventOfCode.Day19 do
   end
 
   def part1(args) do
-    parse(args)|> reduce_scanners()  |> Map.to_list() |> List.first() |> elem(1) |> MapSet.new() |> count()
-#    Map.new([{0, scanners[0]}, {2, scanners[2]}])
+    parse(args)
+    |> reduce_scanners()
+    |> Map.to_list()
+    |> List.first()
+    |> elem(1)
+    |> MapSet.new()
+    |> count()
+
+    #    Map.new([{0, scanners[0]}, {2, scanners[2]}])
   end
 
   def part2(_args) do
