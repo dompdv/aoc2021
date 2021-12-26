@@ -70,13 +70,16 @@ defmodule AdventOfCode.Day19 do
         not in_common(x0s, map(x1s, fn x -> x + coord end), 12, 0)
       end)
       |> take(1)
-      if empty?(search), do: false, else: hd(search)
+
+    if empty?(search), do: false, else: hd(search)
   end
 
   def find_first_overlap(scanners) do
     for(
-      {i, scan0} <- [{0, scanners[0]}], #sort(scanners),
-      {j, scan1} <- to_list(scanners) |> shuffle(), #sort(scanners),
+      # sort(scanners),
+      {i, scan0} <- [{0, scanners[0]}],
+      # sort(scanners),
+      {j, scan1} <- to_list(scanners) |> shuffle(),
       i < j,
       do: {i, scan0, j, scan1}
     )
@@ -98,32 +101,6 @@ defmodule AdventOfCode.Day19 do
     )
   end
 
-  def find_overlap(scanners) do
-    for(
-      {i, scan0} <- [{0, scanners[0]}], #sort(scanners),
-      {j, scan1} <- to_list(scanners) |> shuffle(), #sort(scanners),
-      i < j,
-      do: {i, scan0, j, scan1}
-    )
-    |> reduce(
-      [],
-      fn {i, scan0, j, scan1}, acc ->
-        IO.inspect({i, j})
-
-        common =
-          @transfos
-          |> map(fn transfo ->
-            {transfo,
-             map(0..2, fn axis -> scan_coord(scan0, apply_transfo(scan1, transfo), axis) end)}
-          end)
-          |> filter(fn {_, [x, y, z]} -> x != false and y != false and z != false end)
-
-        if empty?(common), do: acc, else: [{i, j, common} | acc]
-      end
-    )
-  end
-
-
   def merge_scanners(scan0, scan1, transfo, {x, y, z} = move_by) do
     IO.inspect({"merge", transfo, move_by})
     new_scan1 = scan1 |> apply_transfo(transfo) |> move_scanner({x, y, z})
@@ -140,31 +117,37 @@ defmodule AdventOfCode.Day19 do
 
         {i, j, [{transfo, [x, y, z]}]} ->
           new_scan0 = merge_scanners(scanners[i], scanners[j], transfo, {x, y, z})
-          reduce_scanners(scanners |> Map.delete(j) |> Map.put(i, new_scan0), [{i, j, [{transfo, [x, y, z]}]} | translations])
+
+          reduce_scanners(scanners |> Map.delete(j) |> Map.put(i, new_scan0), [
+            {i, j, [{transfo, [x, y, z]}]} | translations
+          ])
       end
     end
   end
 
-  def manhattan({x1,y1,z1}, {x2,y2,z2}), do: abs(x2-x1) + abs(y2-y1) + abs(z2-z1)
+  def manhattan({x1, y1, z1}, {x2, y2, z2}), do: abs(x2 - x1) + abs(y2 - y1) + abs(z2 - z1)
+
   def part1(args) do
     {scanners, translations} =
       parse(args)
       |> reduce_scanners([])
 
-      count_beacons =
+    count_beacons =
       scanners
       |> Map.to_list()
       |> List.first()
       |> elem(1)
       |> MapSet.new()
       |> count()
-      IO.inspect(["Part 1", count_beacons])
 
-      IO.inspect(translations)
-      points = [{0,0,0} | map(translations, fn {_,_,[{_,p}]} -> List.to_tuple(p) end)]
-      (for p1 <- points, p2 <- points, p1 != p2, do: manhattan(p1, p2))
-      |> max()
-    end
+    IO.inspect(["Part 1", count_beacons])
+
+    IO.inspect(translations)
+    points = [{0, 0, 0} | map(translations, fn {_, _, [{_, p}]} -> List.to_tuple(p) end)]
+
+    for(p1 <- points, p2 <- points, p1 != p2, do: manhattan(p1, p2))
+    |> max()
+  end
 
   def part2(args), do: part1(args)
 end
