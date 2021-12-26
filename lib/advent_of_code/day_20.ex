@@ -17,8 +17,9 @@ defmodule AdventOfCode.Day20 do
     {algo, {image, count(image), count(at(image, 0))}}
   end
 
-  def img_get({_img, rows, cols}, row, col) when row < 0 or col < 0 or row >= rows or col >= cols,
-    do: 0
+  def img_get({_img, rows, cols}, row, col)
+      when row < 0 or col < 0 or row >= rows or col >= cols,
+      do: 0
 
   def img_get({img, _rows, _cols}, row, col), do: img |> at(row) |> at(col)
 
