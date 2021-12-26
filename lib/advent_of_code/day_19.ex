@@ -130,38 +130,41 @@ defmodule AdventOfCode.Day19 do
     MapSet.union(MapSet.new(new_scan1), MapSet.new(scan0)) |> MapSet.to_list()
   end
 
-  def reduce_scanners(scanners) do
+  def reduce_scanners(scanners, translations) do
     if count(scanners) == 1 do
-      scanners
+      {scanners, translations}
     else
       case find_first_overlap(scanners) do
         nil ->
-          scanners
+          {scanners, translations}
 
         {i, j, [{transfo, [x, y, z]}]} ->
           new_scan0 = merge_scanners(scanners[i], scanners[j], transfo, {x, y, z})
-          reduce_scanners(scanners |> Map.delete(j) |> Map.put(i, new_scan0))
+          reduce_scanners(scanners |> Map.delete(j) |> Map.put(i, new_scan0), [{i, j, [{transfo, [x, y, z]}]} | translations])
       end
     end
   end
 
+  def manhattan({x1,y1,z1}, {x2,y2,z2}), do: abs(x2-x1) + abs(y2-y1) + abs(z2-z1)
   def part1(args) do
-    parse(args)
-    |> reduce_scanners()
-    |> Map.to_list()
-    |> List.first()
-    |> elem(1)
-    |> MapSet.new()
-    |> count()
-  end
+    {scanners, translations} =
+      parse(args)
+      |> reduce_scanners([])
 
-  def part2(args) do
-    parse(args)
-    |> reduce_scanners()
-    |> Map.to_list()
-    |> List.first()
-    |> elem(1)
-    |> MapSet.new()
-    |> count()
-  end
+      count_beacons =
+      scanners
+      |> Map.to_list()
+      |> List.first()
+      |> elem(1)
+      |> MapSet.new()
+      |> count()
+      IO.inspect(["Part 1", count_beacons])
+
+      IO.inspect(translations)
+      points = [{0,0,0} | map(translations, fn {_,_,[{_,p}]} -> List.to_tuple(p) end)]
+      (for p1 <- points, p2 <- points, p1 != p2, do: manhattan(p1, p2))
+      |> max()
+    end
+
+  def part2(args), do: part1(args)
 end
