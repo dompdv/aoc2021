@@ -19,7 +19,11 @@ defmodule AdventOfCode.Day20 do
 
   def img_get({_img, rows, cols}, row, col, step, algo)
       when row < 0 or col < 0 or row >= rows or col >= cols,
-      do: if rem(step, 2) == 0, do: at(algo, 511), else: at(algo, 0)
+      do:
+        if(at(algo, 0) == 0,
+          do: 0,
+          else: if(rem(step, 2) == 1, do: at(algo, 511), else: at(algo, 0))
+        )
 
   def img_get({img, _rows, _cols}, row, col, _step, _algo), do: img |> at(row) |> at(col)
 
@@ -40,14 +44,14 @@ defmodule AdventOfCode.Day20 do
   end
 
   def print_image({img, _rows, _cols}) do
-    img |> map(fn line ->
+    img
+    |> map(fn line ->
       map(line, fn c -> if c == 0, do: '.', else: '#' end) |> to_string()
     end)
   end
 
   def launch(args, n) do
-    {_, {img, _, _}} =
-     reduce(1..n, parse(args), fn step, acc -> one_step(acc, step) end)
+    {_, {img, _, _}} = reduce(1..n, parse(args), fn step, acc -> one_step(acc, step) end)
     img |> List.flatten() |> sum()
   end
 
