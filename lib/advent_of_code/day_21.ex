@@ -35,7 +35,9 @@ defmodule AdventOfCode.Day21 do
     reduce(
       @outcomes,
       {board, wins_so_far},
-      fn {rolls, outcomes}, {acc_board, acc_wins_so_far} ->
+     fn {rolls, outcomes}, {acc_board, acc_wins_so_far} ->
+#        fn rolls, {acc_board, acc_wins_so_far} ->
+#    outcomes = 1
         # etant donné un jet de dés (rolls) et un nombre d'outcomes pour ce jet de dés
         # on calcule où on atterit (nouvelle position, nouveau score)
         {new_pos, new_score} = move_by(rolls, {pos, score})
@@ -52,7 +54,7 @@ defmodule AdventOfCode.Day21 do
              {new_pos, new_score},
              # nombre d'événements de départ * le nombre d'outcomes du jet de dés
              previous_n_events + n_events * outcomes
-           ), wins_so_far}
+           ), acc_wins_so_far}
         end
       end
     )
@@ -70,7 +72,7 @@ defmodule AdventOfCode.Day21 do
   end
 
   def move(board1, board2, win1, win2) do
-    print_board(board1)
+    #print_board(board1)
     if empty?(board1) or empty?(board2) do
       {win1, win2}
     else
