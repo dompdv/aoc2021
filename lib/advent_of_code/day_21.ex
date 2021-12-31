@@ -3,6 +3,7 @@ defmodule AdventOfCode.Day21 do
 
   # |> frequencies()
   @outcomes for(i <- 1..3, j <- 1..3, k <- 1..3, do: [i, j, k]) |> map(&sum/1)
+  @outcomes_cross for i <- @outcomes, j <- @outcomes, do: {i,j}
   def move_by(shift, {pos, score}) do
     arrival = rem(pos - 1 + shift, 10) + 1
     {arrival, score + arrival}
@@ -31,48 +32,25 @@ defmodule AdventOfCode.Day21 do
   end
 
   def compute_outcomes(pos1, score1, pos2, score2, n_events, board, wins_so_far1, wins_so_far2) do
-    {board_after_p1, wins_so_far1_after_p1, wins_so_far2_after_p1} =
-      reduce(
-        @outcomes,
-        {board, wins_so_far1, wins_so_far2},
-        fn rolls, {acc_board, acc_wins_so_far1, acc_wins_so_far2} ->
-          {new_pos1, new_score1} = move_by(rolls, {pos1, score1})
-
-          if new_score1 >= 21 do
-            {acc_board, acc_wins_so_far1 + n_events, acc_wins_so_far2}
-          else
-            previous_n_events = Map.get(acc_board, {new_pos1, new_score1, pos2, score2}, 0)
-
-            {Map.put(
-               acc_board,
-               {new_pos1, new_score1, pos2, score2},
-               previous_n_events + n_events
-             ), acc_wins_so_far1, acc_wins_so_far2}
-          end
-        end
-      )
-
-    reduce(
-      @outcomes,
-      {board_after_p1, wins_so_far1_after_p1, wins_so_far2_after_p1},
-      fn rolls, {acc_board, acc_wins_so_far1, acc_wins_so_far2} ->
-        # etant donné un jet de dés (rolls) et un nombre d'outcomes pour ce jet de dés
-        # on calcule où on atterit (nouvelle position, nouveau score)
-        {new_pos2, new_score2} = move_by(rolls, {pos2, score2})
-
-        if new_score2 >= 21 do
-          # si on a gagnés, on incrémente le compteur des victoires
-          {acc_board, acc_wins_so_far1, acc_wins_so_far2 + n_events}
+    @outcomes_cross
+    |> reduce(
+      {board, wins_so_far1, wins_so_far2},
+      fn {rolls1, rolls2}, {acc_board, acc_wins_so_far1, acc_wins_so_far2} ->
+        {new_pos1, new_score1} = move_by(rolls1, {pos1, score1})
+        {new_pos2, new_score2} = move_by(rolls2, {pos2, score2})
+        if new_score1 >= 21 do
+          {acc_board, acc_wins_so_far1 + n_events, acc_wins_so_far2}
         else
-          # si on n'a pas gagné, on va mettre à jour, dans le nouveau board, le nombre d'événements y conduisant
-          previous_n_events = Map.get(acc_board, {pos1, score1, new_pos2, new_score2}, 0)
-
-          {Map.put(
-             acc_board,
-             {pos1, score1, new_pos2, new_score2},
-             # nombre d'événements de départ * le nombre d'outcomes du jet de dés
-             previous_n_events + n_events
-           ), acc_wins_so_far1, acc_wins_so_far2}
+          if new_score2 >= 21 do
+            {acc_board, acc_wins_so_far1, acc_wins_so_far2 + n_events}
+          else
+            previous_n_events = Map.get(acc_board, {new_pos1, new_score1, new_pos2, new_score2}, 0)
+            {Map.put(
+              acc_board,
+              {new_pos1, new_score1, new_pos2, new_score2},
+              previous_n_events + n_events
+            ), acc_wins_so_far1, acc_wins_so_far2}
+          end
         end
       end
     )
@@ -94,9 +72,8 @@ defmodule AdventOfCode.Day21 do
     if empty?(board) do
       {win1, win2}
     else
-      {board, win1p, win2p} = one_turn(board, 0, 0)
-      IO.inspect({win1, win2})
-      move(board, win1 + win1p, win2 + win2p)
+      {board, win1p, win2p} = one_turn(board, win1, win2)
+      move(board, win1p, win2p)
     end
   end
 
