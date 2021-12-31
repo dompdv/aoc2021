@@ -3,7 +3,7 @@ defmodule AdventOfCode.Day21 do
 
   # |> frequencies()
   @outcomes for(i <- 1..3, j <- 1..3, k <- 1..3, do: [i, j, k]) |> map(&sum/1)
-  @outcomes_cross for i <- @outcomes, j <- @outcomes, do: {i,j}
+  @outcomes_cross (for i <- @outcomes, j <- @outcomes, do: {i, j}) |> frequencies()
   def move_by(shift, {pos, score}) do
     arrival = rem(pos - 1 + shift, 10) + 1
     {arrival, score + arrival}
@@ -35,21 +35,24 @@ defmodule AdventOfCode.Day21 do
     @outcomes_cross
     |> reduce(
       {board, wins_so_far1, wins_so_far2},
-      fn {rolls1, rolls2}, {acc_board, acc_wins_so_far1, acc_wins_so_far2} ->
+      fn {{rolls1, rolls2}, occurences}, {acc_board, acc_wins_so_far1, acc_wins_so_far2} ->
         {new_pos1, new_score1} = move_by(rolls1, {pos1, score1})
         {new_pos2, new_score2} = move_by(rolls2, {pos2, score2})
+
         if new_score1 >= 21 do
-          {acc_board, acc_wins_so_far1 + n_events, acc_wins_so_far2}
+          {acc_board, acc_wins_so_far1 + n_events * occurences, acc_wins_so_far2}
         else
           if new_score2 >= 21 do
-            {acc_board, acc_wins_so_far1, acc_wins_so_far2 + n_events}
+            {acc_board, acc_wins_so_far1, acc_wins_so_far2 + n_events * occurences}
           else
-            previous_n_events = Map.get(acc_board, {new_pos1, new_score1, new_pos2, new_score2}, 0)
+            previous_n_events =
+              Map.get(acc_board, {new_pos1, new_score1, new_pos2, new_score2}, 0)
+
             {Map.put(
-              acc_board,
-              {new_pos1, new_score1, new_pos2, new_score2},
-              previous_n_events + n_events
-            ), acc_wins_so_far1, acc_wins_so_far2}
+               acc_board,
+               {new_pos1, new_score1, new_pos2, new_score2},
+               previous_n_events + n_events * occurences
+             ), acc_wins_so_far1, acc_wins_so_far2}
           end
         end
       end
@@ -68,16 +71,19 @@ defmodule AdventOfCode.Day21 do
     )
   end
 
-  def move(board, win1, win2) do
+  def move(board, win1, win2, turn) do
     if empty?(board) do
+      IO.inspect(board)
+      IO.inspect(board[{7, 7, 1, 1}])
       {win1, win2}
     else
       {board, win1p, win2p} = one_turn(board, win1, win2)
-      move(board, win1p, win2p)
+      IO.inspect({win1p, win2p})
+      move(board, win1p, win2p, turn + 1)
     end
   end
 
   def part2(_args) do
-    move(%{{4, 0, 8, 0} => 1}, 0, 0)
+    move(%{{4, 0, 8, 0} => 1}, 0, 0, 0)
   end
 end
