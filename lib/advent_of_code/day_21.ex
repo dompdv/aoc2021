@@ -36,8 +36,6 @@ defmodule AdventOfCode.Day21 do
       @outcomes,
       {board, wins_so_far},
      fn {rolls, outcomes}, {acc_board, acc_wins_so_far} ->
-#        fn rolls, {acc_board, acc_wins_so_far} ->
-#    outcomes = 1
         # etant donné un jet de dés (rolls) et un nombre d'outcomes pour ce jet de dés
         # on calcule où on atterit (nouvelle position, nouveau score)
         {new_pos, new_score} = move_by(rolls, {pos, score})
@@ -98,7 +96,6 @@ defmodule AdventOfCode.Day21 do
   end
 
   def part2(_args) do
-    # {a,_} = {%{{1, 0} => 1}, 0} |> one_turn() |> IO.inspect() |> one_turn()
     move(%{{4, 0} => 1}, %{{8, 0} => 1}, 0, 0)
   end
 end
