@@ -52,23 +52,115 @@ defmodule AdventOfCode.Day22 do
     |> count()
   end
 
-  def merge_intervals([a]=l), do: [a,a]
-  def merge_intervals([{_b1, h1}, {b2, _h2}]=l) when h1 < b2, do: l
-  def merge_intervals([{b1, h1}, {_b2, h2}]), do: [{b1, max([h1, h2])}, :merge]
+  def disjoint({b1, h1}, {b2, h2}), do: Range.disjoint?(Range.new(b1, h1), Range.new(b2, h2))
+  def englob({b1, h1}, {b2, h2}), do: (b1 < b2 and h1 > h2) or (b2 < b1 and h2 > h1)
 
+  def overlap_points({b1, h1} = i1, {b2, h2} = i2) do
+    cond do
+      disjoint(i1, i2) ->
+        nil
 
-  def clean_intervals(intervals), do: clean_intervals(intervals, [], false)
-  def clean_intervals([{b1, h1}, {b2, h2}|r], acc, merged) when (h1 + 1) < b2, do: clean_intervals([{b2,h2}|r], [{b1,h1}|acc], merged)
-  def clean_intervals([{b1, h1}, {b2, h2}|r], acc, _merged) when b2 <= (h1 + 1), do: clean_intervals(r, [{b1, max([h1, h2])}|acc], true)
-  def clean_intervals([i], acc, merged) do
-    if merged, do: clean_intervals(reverse([i|acc]), [], false), else: reverse([i|acc])
+      i1 == i2 ->
+        [[b1, h1]]
+
+      true ->
+        new_intervals =
+          [b1, h1, b2, h2]
+          |> sort()
+          |> dedup()
+          |> chunk_every(2, 1, :discard)
+          |> with_index()
+
+        n = count(new_intervals)
+
+        new_intervals
+        |> map(fn {[b, h], index} -> [b, if(index == n - 1, do: h, else: h - 1)] end)
+    end
   end
 
-  def add_interval(l, interval), do: sort([interval | l]) |> clean_intervals()
+  def disjoint_cuboids({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}}) do
+    disjoint({xb1, xh1}, {xb2, xh2}) or disjoint({yb1, yh1}, {yb2, yh2}) or
+      disjoint({zb1, zh1}, {zb2, zh2})
+  end
+
+  def belongs_to({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {x, y, z}) do
+    xb1 <= x and x <= xh1 and yb1 <= y and y <= yh1 and zb1 <= z and z <= zh1
+  end
+
+  def englobing_cuboids(
+        {{xb1, xh1}, {yb1, yh1}, {zb1, zh1}},
+        {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}}
+      ) do
+    englob({xb1, xh1}, {xb2, xh2}) and englob({yb1, yh1}, {yb2, yh2}) and
+      englob({zb1, zh1}, {zb2, zh2})
+  end
+
+  def merge_overlapping_cuboids(
+        {{xb1, xh1}, {yb1, yh1}, {zb1, zh1}} = c1,
+        {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}} = c2
+      ) do
+    x_points = overlap_points({xb1, xh1}, {xb2, xh2})
+    y_points = overlap_points({yb1, yh1}, {yb2, yh2})
+    z_points = overlap_points({zb1, zh1}, {zb2, zh2})
+
+    for(
+      [xb, xh] <- x_points,
+      [yb, yh] <- y_points,
+      [zb, zh] <- z_points,
+      do: {{xb, xh}, {yb, yh}, {zb, zh}}
+    )
+    |> filter(fn {{xb, xh}, {yb, yh}, {zb, zh}} ->
+      belongs_to(c1, {div(xb + xh, 2), div(yb + yh, 2), div(zb + zh, 2)}) or
+        belongs_to(c2, {div(xb + xh, 2), div(yb + yh, 2), div(zb + zh, 2)})
+    end)
+  end
+
+  def merge_cuboids({{xb1, _xh1}, _, _} = c1, {{xb2, _}, _, _} = c2) do
+    cond do
+      disjoint_cuboids(c1, c2) -> [c1, c2]
+      englobing_cuboids(c1, c2) -> if xb1 < xb2, do: c1, else: c2
+      true -> merge_overlapping_cuboids(c1, c2)
+    end
+  end
+
+  def clean_cuboid_list([]), do: []
+
+  def clean_cuboid_list(l), do: clean_cuboid_list(l, [], false)
+  def clean_cuboid_list([], acc, fired), do: if(IO.inspect(fired), do: clean_cuboid_list(acc), else: acc)
+
+  def clean_cuboid_list([{{xb1, xh1}, {yb1, yh1}, {zb1, zh1}} = c | r], acc, fired) do
+    if any?(r, fn {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}} ->
+         xb1 >= xb2 and xh1 <= xh2 and yb1 >= yb2 and yh1 <= yh2 and zb1 >= zb2 and zh1 <= zh2
+       end),
+       do: clean_cuboid_list(r, acc, true),
+       else: clean_cuboid_list(r, [c | acc], fired)
+  end
+
+  def on_cuboid([], new_cuboid), do: [new_cuboid]
+
+  def on_cuboid(l, new_cuboid) do
+    l
+    |> map(fn c -> merge_cuboids(new_cuboid, c) end)
+    |> List.flatten()
+    |> clean_cuboid_list()
+  end
 
   def part2(_args) do
-    [] |> add_interval({10, 15}) |> add_interval({20, 25}) |> add_interval({5, 13}) |> add_interval({8, 18}) |> add_interval({30, 32})
-    |> IO.inspect()
+    IO.inspect({"dis", disjoint({1, 2}, {2, 4})})
+    IO.inspect({"eng1", englob({1, 5}, {2, 7})})
+    IO.inspect({"eng2", englob({1, 10}, {2, 7})})
+    IO.inspect({"eng3", englob({3, 8}, {2, 7})})
+    IO.inspect({"eng4", englob({3, 7}, {2, 7})})
+    IO.inspect({"eng5", englob({3, 7}, {1, 8})})
+    IO.inspect({"over1", overlap_points({1, 5}, {8, 10})})
+    IO.inspect({"over2", overlap_points({1, 5}, {2, 7})})
+    IO.inspect({"over3", overlap_points({0, 5}, {0, 6})})
 
+    []
+    |> on_cuboid({{0, 10}, {0, 10}, {0, 5}})
+    |> on_cuboid({{9, 20}, {9, 21}, {0, 5}})
+    |> on_cuboid({{5, 18}, {8, 22}, {0, 5}})
+
+    # |> count()
   end
 end
