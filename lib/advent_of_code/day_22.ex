@@ -77,28 +77,6 @@ defmodule AdventOfCode.Day22 do
         |> map(fn {[b, h], index} -> [b, if(index == n - 1, do: h, else: h - 1)] end)
     end
   end
-  def overlap_points({b1, h1} = i1, {b2, h2} = i2) do
-    cond do
-      disjoint(i1, i2) -> []
-      i1 == i2 -> [[b1, h1]]
-
-      b1 <= b2 and h1 >= h2 -> [[b1, h1]]
-      b2 <= b1 and h2 >= h1 -> [[b2, h2]]
-
-      true ->
-        new_intervals =
-          [b1, h1, b2, h2]
-          |> sort()
-          |> dedup()
-          |> chunk_every(2, 1, :discard)
-          |> with_index()
-
-        n = count(new_intervals)
-
-        new_intervals
-        |> map(fn {[b, h], index} -> [b, if(index == n - 1, do: h, else: h - 1)] end)
-    end
-  end
 
   def disjoint_cuboids({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}}) do
     disjoint({xb1, xh1}, {xb2, xh2}) or disjoint({yb1, yh1}, {yb2, yh2}) or
@@ -147,13 +125,25 @@ defmodule AdventOfCode.Day22 do
     end)
   end
 
+  def overlap_points({b1, h1} = i1, {b2, h2} = i2) do
+    {b1, h1, b2, h2} = if b1 <= b2, do: {b1, h1, b2, h2}, else: {b2, h2, b1, h1}
+    cond do
+      i1 == i2 -> [[b1, h1]]
+      h1 < b2  -> nil
+      h1 >= b2 and h1 < h2 -> [[b1, b2], [b2 + 1, h1], [h1 + 1, h2]]
+      h1 == h2 -> [[b1, b2-1], [b2, h2]]
+      h1 > h2 -> [[b1, b2-1], [b2, h2], [h2 + 1, h1]]
+    end
+  end
+
   def merge_overlapping_cuboids(
         {{xb1, xh1}, {yb1, yh1}, {zb1, zh1}} = c1,
         {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}} = c2
       ) do
-    x_points = switch_off_intervals({xb1, xh1}, {xb2, xh2})
-    y_points = switch_off_intervals({yb1, yh1}, {yb2, yh2})
-    z_points = switch_off_intervals({zb1, zh1}, {zb2, zh2})
+    x_points = overlap_points({xb1, xh1}, {xb2, xh2})
+    y_points = overlap_points({yb1, yh1}, {yb2, yh2})
+    z_points = overlap_points({zb1, zh1}, {zb2, zh2})
+    IO.inspect({"p", x_points, y_points, z_points}, charlists: :as_lists)
 
     for(
       [xb, xh] <- x_points,
