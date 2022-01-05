@@ -55,29 +55,6 @@ defmodule AdventOfCode.Day22 do
   def disjoint({b1, h1}, {b2, h2}), do: Range.disjoint?(Range.new(b1, h1), Range.new(b2, h2))
   def englob({b1, h1}, {b2, h2}), do: (b1 < b2 and h1 > h2) or (b2 < b1 and h2 > h1)
 
-  def overlap_points_old({b1, h1} = i1, {b2, h2} = i2) do
-    cond do
-      disjoint(i1, i2) ->
-        nil
-
-      i1 == i2 ->
-        [[b1, h1]]
-
-      true ->
-        new_intervals =
-          [b1, h1, b2, h2]
-          |> sort()
-          |> dedup()
-          |> chunk_every(2, 1, :discard)
-          |> with_index()
-
-        n = count(new_intervals)
-
-        new_intervals
-        |> map(fn {[b, h], index} -> [b, if(index == n - 1, do: h, else: h - 1)] end)
-    end
-  end
-
   def disjoint_cuboids({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}}) do
     disjoint({xb1, xh1}, {xb2, xh2}) or disjoint({yb1, yh1}, {yb2, yh2}) or
       disjoint({zb1, zh1}, {zb2, zh2})
@@ -109,9 +86,10 @@ defmodule AdventOfCode.Day22 do
         {{xb1, xh1}, {yb1, yh1}, {zb1, zh1}} = c1,
         {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}} = c2
       ) do
-    x_points = switch_off_intervals({xb1, xh1}, {xb2, xh2})
-    y_points = switch_off_intervals({yb1, yh1}, {yb2, yh2})
-    z_points = switch_off_intervals({zb1, zh1}, {zb2, zh2})
+    x_points = overlap_points({xb1, xh1}, {xb2, xh2})
+    y_points = overlap_points({yb1, yh1}, {yb2, yh2})
+    z_points = overlap_points({zb1, zh1}, {zb2, zh2})
+    # IO.inspect({"off", x_points, y_points, z_points}, charlists: :as_lists)
 
     for(
       [xb, xh] <- x_points,
@@ -125,14 +103,26 @@ defmodule AdventOfCode.Day22 do
     end)
   end
 
+  def switch_off_cuboid(
+        {{xb1, xh1}, {yb1, yh1}, {zb1, zh1}} = c1,
+        {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}} = c2
+      ) do
+    cond do
+      disjoint_cuboids(c1, c2) -> [c2]
+      xb1 <= xb2 and xh1 >= xh2 and yb1 <= yb2 and yh1 >= yh2 and zb1 <= zb2 and zh1 >= zh2 -> []
+      true -> switch_off_overlapping_cuboids(c1, c2)
+    end
+  end
+
   def overlap_points({b1, h1} = i1, {b2, h2} = i2) do
     {b1, h1, b2, h2} = if b1 <= b2, do: {b1, h1, b2, h2}, else: {b2, h2, b1, h1}
+
     cond do
       i1 == i2 -> [[b1, h1]]
-      h1 < b2  -> nil
-      h1 >= b2 and h1 < h2 -> [[b1, b2], [b2 + 1, h1], [h1 + 1, h2]]
-      h1 == h2 -> [[b1, b2-1], [b2, h2]]
-      h1 > h2 -> [[b1, b2-1], [b2, h2], [h2 + 1, h1]]
+      h1 < b2 -> nil
+      h1 >= b2 and h1 < h2 -> [[b1, b2 - 1], [b2, h1], [h1 + 1, h2]]
+      h1 == h2 -> [[b1, b2 - 1], [b2, h2]]
+      h1 > h2 -> [[b1, b2 - 1], [b2, h2], [h2 + 1, h1]]
     end
   end
 
@@ -143,7 +133,7 @@ defmodule AdventOfCode.Day22 do
     x_points = overlap_points({xb1, xh1}, {xb2, xh2})
     y_points = overlap_points({yb1, yh1}, {yb2, yh2})
     z_points = overlap_points({zb1, zh1}, {zb2, zh2})
-    IO.inspect({"p", x_points, y_points, z_points}, charlists: :as_lists)
+    # IO.inspect({"on", x_points, y_points, z_points}, charlists: :as_lists)
 
     for(
       [xb, xh] <- x_points,
@@ -165,17 +155,6 @@ defmodule AdventOfCode.Day22 do
     end
   end
 
-  def switch_off_cuboid(
-        {{xb1, xh1}, {yb1, yh1}, {zb1, zh1}} = c1,
-        {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}} = c2
-      ) do
-    cond do
-      disjoint_cuboids(c1, c2) -> [c2]
-      xb1 <= xb2 and xh1 >= xh2 and yb1 <= yb2 and yh1 >= yh2 and zb1 <= zb2 and zh1 >= zh2 -> []
-      true -> switch_off_overlapping_cuboids(c1, c2)
-    end
-  end
-
   def clean_cuboid_list([]), do: []
 
   def clean_cuboid_list(l), do: clean_cuboid_list(l, [], false)
@@ -194,41 +173,17 @@ defmodule AdventOfCode.Day22 do
   def on_cuboid([], new_cuboid), do: [new_cuboid]
 
   def on_cuboid(l, new_cuboid) do
-    l
-    |> map(fn c -> merge_cuboids(new_cuboid, c) end)
+    map(l, fn c -> merge_cuboids(new_cuboid, c) end)
     |> List.flatten()
     |> clean_cuboid_list()
   end
 
   def off_cuboid(l, new_cuboid) do
-    l
-    |> map(fn c ->
+    map(l, fn c ->
       switch_off_cuboid(new_cuboid, c)
     end)
     |> List.flatten()
-    |> sort()
-    |> dedup()
     |> clean_cuboid_list()
-  end
-
-  def tests(_args) do
-    IO.inspect({"dis", disjoint({1, 2}, {2, 4})})
-    IO.inspect({"eng1", englob({1, 5}, {2, 7})})
-    IO.inspect({"eng2", englob({1, 10}, {2, 7})})
-    IO.inspect({"eng3", englob({3, 8}, {2, 7})})
-    IO.inspect({"eng4", englob({3, 7}, {2, 7})})
-    IO.inspect({"eng5", englob({3, 7}, {1, 8})})
-    IO.inspect({"over1", overlap_points({1, 5}, {8, 10})})
-    IO.inspect({"over2", overlap_points({1, 5}, {2, 7})})
-    IO.inspect({"over3", overlap_points({0, 5}, {0, 6})})
-
-    []
-    |> on_cuboid({{0, 10}, {0, 10}, {0, 5}})
-    |> on_cuboid({{9, 20}, {9, 21}, {0, 5}})
-    |> on_cuboid({{5, 18}, {8, 22}, {0, 5}})
-    |> off_cuboid({{1, 100}, {0, 100}, {0, 100}})
-
-    # |> count()
   end
 
   def count_on(l) do
@@ -246,11 +201,10 @@ defmodule AdventOfCode.Day22 do
       [],
       fn command, cuboids ->
         new_cuboid = one_step(command, cuboids)
-        IO.inspect(count_on(new_cuboid))
+        IO.inspect({command, count_on(new_cuboid)})
         new_cuboid
       end
     )
-    # |> count()
-    #|> count_on()
+    |> count_on()
   end
 end
