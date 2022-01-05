@@ -5,7 +5,8 @@ defmodule Mix.Tasks.D22.P2 do
 
   @shortdoc "Day 22 Part 2"
   def run(args) do
-    input = #AdventOfCode.Input.get!(22, 2021)
+    # AdventOfCode.Input.get!(22, 2021)
+    input = AdventOfCode.Input.get!(22, 2021)
 
     """
     on x=-5..47,y=-31..22,z=-19..33

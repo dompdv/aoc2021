@@ -72,13 +72,31 @@ defmodule AdventOfCode.Day22 do
       englob({zb1, zh1}, {zb2, zh2})
   end
 
-  def switch_off_intervals({b1, h1}, {b2, h2}) do
+  def switch_off_intervals({b1, h1} = i1, {b2, h2} = i2) do
     cond do
-      b1 <= b2 and h1 >= h2 -> []
-      b1 < b2 and h1 < h2 -> [[b1, b2 - 1], [b2, h1], [h1 + 1, h2]]
-      b1 == b2 and h1 < h2 -> [[b1, h1], [h1 + 1, h2]]
-      b1 > b2 and h1 < h2 -> [[b2, b1 - 1], [b1, h1], [h1 + 1, h2]]
-      b1 > b2 and h1 >= h2 -> [[b2, b1 - 1], [b1, h1]]
+      b1 < b2 ->
+        cond do
+          i1 == i2 -> [[b1, h1]]
+          h1 < b2 -> nil
+          h1 >= b2 and h1 < h2 -> [[b1, b2 - 1], [b2, h1], [h1 + 1, h2]]
+          h1 == h2 -> [[b1, b2 - 1], [b2, h2]]
+          h1 > h2 -> [[b1, b2 - 1], [b2, h2], [h2 + 1, h1]]
+        end
+
+      b1 > b2 ->
+        cond do
+          i1 == i2 -> [[b1, h1]]
+          h1 < h2 -> [[b2, b1 - 1], [b1, h1], [h1 + 1, h2]]
+          h1 == h2 -> [[b2, b1 - 1], [b1, h2]]
+          h1 > h2 -> [[b2, b1 - 1], [b1, h2], [h2 + 1, h1]]
+        end
+
+      b1 == b2 ->
+        cond do
+          i1 == i2 -> [[b1, h1]]
+          h1 < h2 -> [[b1, h1], [h1 + 1, h2]]
+          h1 > h2 -> [[b1, h2], [h2 + 1, h1]]
+        end
     end
   end
 
@@ -86,9 +104,9 @@ defmodule AdventOfCode.Day22 do
         {{xb1, xh1}, {yb1, yh1}, {zb1, zh1}} = c1,
         {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}} = c2
       ) do
-    x_points = overlap_points({xb1, xh1}, {xb2, xh2})
-    y_points = overlap_points({yb1, yh1}, {yb2, yh2})
-    z_points = overlap_points({zb1, zh1}, {zb2, zh2})
+    x_points = switch_off_intervals({xb1, xh1}, {xb2, xh2})
+    y_points = switch_off_intervals({yb1, yh1}, {yb2, yh2})
+    z_points = switch_off_intervals({zb1, zh1}, {zb2, zh2})
     # IO.inspect({"off", x_points, y_points, z_points}, charlists: :as_lists)
 
     for(
