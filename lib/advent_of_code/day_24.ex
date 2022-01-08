@@ -51,11 +51,39 @@ defmodule AdventOfCode.Day24 do
     do:
       reduce(program, init_state(input_buffer), fn ins, c_state -> execute_ins(ins, c_state) end)
 
+  def resume_program(program, registers, input_buffer),
+    do:
+      reduce(program, {registers, input_buffer}, fn ins, c_state -> execute_ins(ins, c_state) end)
+
   def init_state(input_buffer), do: {%{x: 0, y: 0, z: 0, w: 0}, input_buffer}
 
+  def find_largest_model_number(program) do
+    99_999_999_999_999..11_111_111_111_111
+    |> Stream.drop_while(fn n ->
+      n_list = to_charlist(Integer.to_string(n)) |> map(&(&1 - ?0))
+
+      if any?(n_list, &(&1 == 0)) do
+        true
+      else
+        if :rand.uniform() > 0.99999, do: IO.inspect({n, DateTime.utc_now()})
+        {%{z: z}, _} = execute_program(program, n_list)
+        IO.inspect({n, z})
+        z != 0
+      end
+    end)
+    |> take(1)
+  end
+
   def part1(args) do
-    program = parse(args)
-    execute_program(program, [1, 2, 3, 4, 5])
+    programs = parse(args) |> chunk_every(div(252, 14))
+
+    bout = hd(programs)
+    states_0 = IO.inspect(map(1..9, fn n -> execute_program(bout, [n]) end))
+    states_0 = map(states_0, &elem(&1, 0))
+
+    bout2 = at(programs, 1)
+    for s <- states_0,n <- 1..9, do: IO.inspect({n, s, resume_program(bout2, s, [n]) |> elem(0)})
+    :ok
   end
 
   def part2(_args) do
