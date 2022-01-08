@@ -52,48 +52,48 @@ defmodule AdventOfCode.Day22 do
     |> count()
   end
 
-  def disjoint({b1, h1}, {b2, h2}), do: Range.disjoint?(Range.new(b1, h1), Range.new(b2, h2))
-  def englob({b1, h1}, {b2, h2}), do: (b1 < b2 and h1 > h2) or (b2 < b1 and h2 > h1)
+  def disjoint({b1, h1}, {b2, h2}) when h1 < b2 or h2 < b1, do: true
+  def disjoint(_, _), do: false
 
   def disjoint_cuboids({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}}) do
     disjoint({xb1, xh1}, {xb2, xh2}) or disjoint({yb1, yh1}, {yb2, yh2}) or
       disjoint({zb1, zh1}, {zb2, zh2})
   end
 
-  def belongs_to({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {x, y, z}) do
-    xb1 <= x and x <= xh1 and yb1 <= y and y <= yh1 and zb1 <= z and z <= zh1
-  end
+  def belongs_to({{xb, xh}, {yb, yh}, {zb, zh}}, {x, y, z})
+      when xb <= x and x <= xh and yb <= y and y <= yh and zb <= z and z <= zh,
+      do: true
 
-  def englobing_cuboids(
-        {{xb1, xh1}, {yb1, yh1}, {zb1, zh1}},
-        {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}}
-      ) do
-    englob({xb1, xh1}, {xb2, xh2}) and englob({yb1, yh1}, {yb2, yh2}) and
-      englob({zb1, zh1}, {zb2, zh2})
-  end
+  def belongs_to(_, _), do: false
 
-  def switch_off_intervals({b1, h1} = i1, {b2, h2} = i2) do
+  def englob({b1, h1}, {b2, h2}), do: (b1 < b2 and h1 > h2) or (b2 < b1 and h2 > h1)
+
+  def cuboid_included?({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}})
+      when xb1 >= xb2 and xh1 <= xh2 and yb1 >= yb2 and yh1 <= yh2 and zb1 >= zb2 and zh1 <= zh2,
+      do: true
+
+  def cuboid_included?(_, _), do: false
+
+  def switch_off_intervals({b1, h1} = i1, i1), do: [[b1, h1]]
+
+  def switch_off_intervals({b1, h1}, {b2, h2}) do
     cond do
       b1 < b2 ->
         cond do
-          i1 == i2 -> [[b1, h1]]
-          h1 < b2 -> nil
-          h1 >= b2 and h1 < h2 -> [[b1, b2 - 1], [b2, h1], [h1 + 1, h2]]
-          h1 == h2 -> [[b1, b2 - 1], [b2, h2]]
+          h1 < h2 -> [[b1, b2 - 1], [b2, h1], [h1 + 1, h2]]
+          h1 == h2 -> [[b1, b2 - 1], [b2, h1]]
           h1 > h2 -> [[b1, b2 - 1], [b2, h2], [h2 + 1, h1]]
         end
 
       b1 > b2 ->
         cond do
-          i1 == i2 -> [[b1, h1]]
           h1 < h2 -> [[b2, b1 - 1], [b1, h1], [h1 + 1, h2]]
-          h1 == h2 -> [[b2, b1 - 1], [b1, h2]]
+          h1 == h2 -> [[b2, b1 - 1], [b1, h1]]
           h1 > h2 -> [[b2, b1 - 1], [b1, h2], [h2 + 1, h1]]
         end
 
       b1 == b2 ->
         cond do
-          i1 == i2 -> [[b1, h1]]
           h1 < h2 -> [[b1, h1], [h1 + 1, h2]]
           h1 > h2 -> [[b1, h2], [h2 + 1, h1]]
         end
@@ -104,43 +104,23 @@ defmodule AdventOfCode.Day22 do
         {{xb1, xh1}, {yb1, yh1}, {zb1, zh1}} = c1,
         {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}} = c2
       ) do
-    x_points = switch_off_intervals({xb1, xh1}, {xb2, xh2})
-    y_points = switch_off_intervals({yb1, yh1}, {yb2, yh2})
-    z_points = switch_off_intervals({zb1, zh1}, {zb2, zh2})
-    # IO.inspect({"off", x_points, y_points, z_points}, charlists: :as_lists)
-
     for(
-      [xb, xh] <- x_points,
-      [yb, yh] <- y_points,
-      [zb, zh] <- z_points,
+      [xb, xh] <- switch_off_intervals({xb1, xh1}, {xb2, xh2}),
+      [yb, yh] <- switch_off_intervals({yb1, yh1}, {yb2, yh2}),
+      [zb, zh] <- switch_off_intervals({zb1, zh1}, {zb2, zh2}),
       do: {{xb, xh}, {yb, yh}, {zb, zh}}
     )
     |> filter(fn {{xb, xh}, {yb, yh}, {zb, zh}} ->
-      not belongs_to(c1, {div(xb + xh, 2), div(yb + yh, 2), div(zb + zh, 2)}) and
-        belongs_to(c2, {div(xb + xh, 2), div(yb + yh, 2), div(zb + zh, 2)})
+      center = {div(xb + xh, 2), div(yb + yh, 2), div(zb + zh, 2)}
+      belongs_to(c2, center) and not belongs_to(c1, center)
     end)
   end
 
-  def switch_off_cuboid(
-        {{xb1, xh1}, {yb1, yh1}, {zb1, zh1}} = c1,
-        {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}} = c2
-      ) do
+  def switch_off_cuboid(c1, c2) do
     cond do
       disjoint_cuboids(c1, c2) -> [c2]
-      xb1 <= xb2 and xh1 >= xh2 and yb1 <= yb2 and yh1 >= yh2 and zb1 <= zb2 and zh1 >= zh2 -> []
+      cuboid_included?(c2, c1) -> []
       true -> switch_off_overlapping_cuboids(c1, c2)
-    end
-  end
-
-  def overlap_points({b1, h1} = i1, {b2, h2} = i2) do
-    {b1, h1, b2, h2} = if b1 <= b2, do: {b1, h1, b2, h2}, else: {b2, h2, b1, h1}
-
-    cond do
-      i1 == i2 -> [[b1, h1]]
-      h1 < b2 -> nil
-      h1 >= b2 and h1 < h2 -> [[b1, b2 - 1], [b2, h1], [h1 + 1, h2]]
-      h1 == h2 -> [[b1, b2 - 1], [b2, h2]]
-      h1 > h2 -> [[b1, b2 - 1], [b2, h2], [h2 + 1, h1]]
     end
   end
 
@@ -148,27 +128,23 @@ defmodule AdventOfCode.Day22 do
         {{xb1, xh1}, {yb1, yh1}, {zb1, zh1}} = c1,
         {{xb2, xh2}, {yb2, yh2}, {zb2, zh2}} = c2
       ) do
-    x_points = overlap_points({xb1, xh1}, {xb2, xh2})
-    y_points = overlap_points({yb1, yh1}, {yb2, yh2})
-    z_points = overlap_points({zb1, zh1}, {zb2, zh2})
-    # IO.inspect({"on", x_points, y_points, z_points}, charlists: :as_lists)
-
     for(
-      [xb, xh] <- x_points,
-      [yb, yh] <- y_points,
-      [zb, zh] <- z_points,
+      [xb, xh] <- switch_off_intervals({xb1, xh1}, {xb2, xh2}),
+      [yb, yh] <- switch_off_intervals({yb1, yh1}, {yb2, yh2}),
+      [zb, zh] <- switch_off_intervals({zb1, zh1}, {zb2, zh2}),
       do: {{xb, xh}, {yb, yh}, {zb, zh}}
     )
     |> filter(fn {{xb, xh}, {yb, yh}, {zb, zh}} ->
-      belongs_to(c1, {div(xb + xh, 2), div(yb + yh, 2), div(zb + zh, 2)}) or
-        belongs_to(c2, {div(xb + xh, 2), div(yb + yh, 2), div(zb + zh, 2)})
+      center = {div(xb + xh, 2), div(yb + yh, 2), div(zb + zh, 2)}
+      belongs_to(c1, center) or belongs_to(c2, center)
     end)
   end
 
-  def merge_cuboids({{xb1, _xh1}, _, _} = c1, {{xb2, _}, _, _} = c2) do
+  def merge_cuboids(c1, c2) do
     cond do
       disjoint_cuboids(c1, c2) -> [c1, c2]
-      englobing_cuboids(c1, c2) -> if xb1 < xb2, do: c1, else: c2
+      cuboid_included?(c1, c2) -> c2
+      cuboid_included?(c2, c1) -> c1
       true -> merge_overlapping_cuboids(c1, c2)
     end
   end
@@ -188,12 +164,62 @@ defmodule AdventOfCode.Day22 do
        else: clean_cuboid_list(r, [c | acc], fired)
   end
 
+  def club_cuboid_list([]), do: []
+
+  def club_cuboid_list(l), do: club_cuboid_list(l, [], false)
+
+  def club_cuboid_list([], acc, fired),
+    do: if(fired, do: club_cuboid_list(acc), else: acc)
+
+  def club_cuboid_list([c | r], acc, fired) do
+    {new_list, clubbed, clubbed_cuboid} =
+      reduce(r, {[], false, nil}, fn c1, {acc, found, c_cuboid} ->
+        if found do
+          {[c1 | acc], found, c_cuboid}
+        else
+          clubbed_cuboid = club_2_cuboids(c, c1)
+          if clubbed_cuboid, do: {acc, true, clubbed_cuboid}, else: {[c1 | acc], false, c_cuboid}
+        end
+      end)
+
+    if clubbed,
+      do: club_cuboid_list(new_list, [clubbed_cuboid | acc], true),
+      else: club_cuboid_list(new_list, [c | acc], fired)
+  end
+
+  def club_2_cuboids({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {{xb1, xh1}, {yb1, yh1}, {zb2, zh2}})
+      when zb2 == zh1 + 1,
+      do: {{xb1, xh1}, {yb1, yh1}, {zb1, zh2}}
+
+  def club_2_cuboids({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {{xb1, xh1}, {yb1, yh1}, {zb2, zh2}})
+      when zb1 == zh2 + 1,
+      do: {{xb1, xh1}, {yb1, yh1}, {zb2, zh1}}
+
+  def club_2_cuboids({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {{xb1, xh1}, {yb2, yh2}, {zb1, zh1}})
+      when yb2 == yh1 + 1,
+      do: {{xb1, xh1}, {yb1, yh2}, {zb1, zh1}}
+
+  def club_2_cuboids({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {{xb1, xh1}, {yb2, yh2}, {zb1, zh1}})
+      when yb1 == yh2 + 1,
+      do: {{xb1, xh1}, {yb2, yh1}, {zb1, zh1}}
+
+  def club_2_cuboids({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {{xb2, xh2}, {yb1, yh1}, {zb1, zh1}})
+      when xb2 == xh1 + 1,
+      do: {{xb1, xh2}, {yb1, yh1}, {zb1, zh1}}
+
+  def club_2_cuboids({{xb1, xh1}, {yb1, yh1}, {zb1, zh1}}, {{xb2, xh2}, {yb1, yh1}, {zb1, zh1}})
+      when xb1 == xh2 + 1,
+      do: {{xb2, xh1}, {yb1, yh1}, {zb1, zh1}}
+
+  def club_2_cuboids(_, _), do: false
+
   def on_cuboid([], new_cuboid), do: [new_cuboid]
 
   def on_cuboid(l, new_cuboid) do
     map(l, fn c -> merge_cuboids(new_cuboid, c) end)
     |> List.flatten()
     |> clean_cuboid_list()
+    |> club_cuboid_list()
   end
 
   def off_cuboid(l, new_cuboid) do
@@ -202,6 +228,7 @@ defmodule AdventOfCode.Day22 do
     end)
     |> List.flatten()
     |> clean_cuboid_list()
+    |> club_cuboid_list()
   end
 
   def count_on(l) do
@@ -218,9 +245,9 @@ defmodule AdventOfCode.Day22 do
     |> reduce(
       [],
       fn command, cuboids ->
-        new_cuboid = one_step(command, cuboids)
-        IO.inspect({command, count_on(new_cuboid)})
-        new_cuboid
+        new_cuboids = one_step(command, cuboids)
+        IO.inspect({command, count_on(new_cuboids), count(new_cuboids)})
+        new_cuboids
       end
     )
     |> count_on()
