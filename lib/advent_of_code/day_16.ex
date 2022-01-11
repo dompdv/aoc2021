@@ -27,6 +27,7 @@ defmodule AdventOfCode.Day16 do
 
   def packet_value([1, a, b, c, d | r]) do
     {pv, new_r} = packet_value(r)
+    IO.inspect({"pv", r, new_r})
     {[a, b, c, d] ++ pv, new_r}
   end
 
@@ -35,24 +36,26 @@ defmodule AdventOfCode.Day16 do
   def packet([]), do: nil
   def packet([a, b, c, 1, 0, 0| r]) do
     {val, new_r} = packet_value(r)
-    {%{type: :operator0, version: to_number([a,b,c]), value: to_number(val)}, new_r}
+    {%{type: :literal, version: to_number([a,b,c]), value: to_number(val)}, new_r}
   end
 
   def packet([a, b, c, _, _, _, 0, l1,l2,l3,l4,l5,l6,l7,l8,l9,l10,l11,l12,l13,l14,l15 | r]) do
     len = to_number([l1,l2,l3,l4,l5,l6,l7,l8,l9,l10,l11,l12,l13,l14,l15])
     target = count(r) - len
     {new_r, packets} =
-    Stream.iterate(0, &(&1+1)) |> reduce_while({r, []}, fn _, {rest, acc} ->
-      if count(r) < target do
+    Stream.iterate(0, &(&1+1))
+    |> reduce_while({r, []}, fn _n, {rest, acc} ->
+      IO.inspect({"acc", rest, acc })
+      if count(rest) <= target do
         {:halt, {rest, acc}}
       else
-        {new_packet, new_rest} = packet(r)
+        {new_packet, new_rest} = packet(rest)
+        IO.inspect({"p", new_packet, new_rest, acc})
         {:cont, {new_rest, [new_packet|acc]}}
       end
     end)
 
     {%{type: :operator0, version: to_number([a,b,c]), packets: packets}, new_r}
-
   end
 
   def part1(args) do

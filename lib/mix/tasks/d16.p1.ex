@@ -5,7 +5,9 @@ defmodule Mix.Tasks.D16.P1 do
 
   @shortdoc "Day 16 Part 1"
   def run(args) do
-    input = "D2FE28"
+    input = "38006F45291200"
+
+    #"D2FE28"
 
     if Enum.member?(args, "-b"),
       do: Benchee.run(%{part_1: fn -> input |> part1() end}),
