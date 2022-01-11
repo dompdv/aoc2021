@@ -82,7 +82,7 @@ defmodule AdventOfCode.Day24 do
     states_0 = map(states_0, &elem(&1, 0))
 
     bout2 = at(programs, 1)
-    for s <- states_0,n <- 1..9, do: IO.inspect({n, s, resume_program(bout2, s, [n]) |> elem(0)})
+    for s <- states_0, n <- 1..9, do: IO.inspect({n, s, resume_program(bout2, s, [n]) |> elem(0)})
     :ok
   end
 
