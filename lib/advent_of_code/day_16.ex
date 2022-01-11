@@ -27,7 +27,6 @@ defmodule AdventOfCode.Day16 do
 
   def packet_value([1, a, b, c, d | r]) do
     {pv, new_r} = packet_value(r)
-    IO.inspect({"pv", r, new_r})
     {[a, b, c, d] ++ pv, new_r}
   end
 
@@ -45,21 +44,39 @@ defmodule AdventOfCode.Day16 do
     {new_r, packets} =
     Stream.iterate(0, &(&1+1))
     |> reduce_while({r, []}, fn _n, {rest, acc} ->
-      IO.inspect({"acc", rest, acc })
       if count(rest) <= target do
         {:halt, {rest, acc}}
       else
         {new_packet, new_rest} = packet(rest)
-        IO.inspect({"p", new_packet, new_rest, acc})
         {:cont, {new_rest, [new_packet|acc]}}
       end
     end)
 
-    {%{type: :operator0, version: to_number([a,b,c]), packets: packets}, new_r}
+    {%{type: :operator0, version: to_number([a,b,c]), packets: reverse(packets)}, new_r}
   end
 
+  def packet([a, b, c, _, _, _, 1, l1,l2,l3,l4,l5,l6,l7,l8,l9,l10,l11 | r]) do
+    len = to_number([l1,l2,l3,l4,l5,l6,l7,l8,l9,l10,l11])
+    {new_r, packets} =
+    Stream.iterate(0, &(&1+1))
+    |> reduce_while({r, []}, fn _n, {rest, acc} ->
+      if count(acc) >= len do
+        {:halt, {rest, acc}}
+      else
+        {new_packet, new_rest} = packet(rest)
+        {:cont, {new_rest, [new_packet|acc]}}
+      end
+    end)
+
+    {%{type: :operator1, version: to_number([a,b,c]), packets: reverse(packets)}, new_r}
+  end
+
+  def add_version_number(%{type: :literal, version: v}), do: v
+  def add_version_number(%{type: :operator0, version: v, packets: packets}), do: v + sum(map(packets, &add_version_number/1))
+  def add_version_number(%{type: :operator1, version: v, packets: packets}), do: v + sum(map(packets, &add_version_number/1))
+
   def part1(args) do
-    parse(args) |> packet()
+    parse(args) |> packet() |> elem(0) |> add_version_number()
   end
 
   def part2(_args) do
