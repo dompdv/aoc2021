@@ -80,14 +80,11 @@ defmodule AdventOfCode.Day24 do
   def diff(l1, l2), do: diff(l1, l2, 0, [])
 
   def step_function(z, {inp, [a1,a2,a3]}) do
-#    x = if inp == ((rem(z, 26) + a2)), do: 0, else: 1
-#    (inp+a3) * x + (25 * x + 1) * div(z, a1)
+    if inp == ((rem(z, 26) + a2)), do: div(z, a1) , else: inp + a3 + 26 * div(z, a1)
+  end
 
-    if inp == ((rem(z, 26) + a2)) do
-      div(z, a1)
-    else
-      inp + a3 + 26 * div(z, a1)
-    end |> IO.inspect()
+  def execute_n_steps(n_list, steps, parameters) do
+      zip(n_list, slice(parameters, 0..(steps-1))) |> reduce(0, fn e, z -> step_function(z, e) end)
   end
 
   def part1(args) do
@@ -102,7 +99,10 @@ defmodule AdventOfCode.Day24 do
     n_list = to_charlist(Integer.to_string(n)) |> map(&(&1 - ?0))
     execute_program(initial_program, n_list) |> IO.inspect()
 
-    zip(n_list, parameters) |> reduce(0, fn e, z -> step_function(z, e) end)
+     zip(n_list, parameters) |> reduce(0, fn e, z -> step_function(z, e) end)
+
+#     for n <- 1..9, m <- 1..9, do: IO.inspect({n, m, execute_n_steps([9,4,9,9,9,7,9,9,4,4,9,4,3,9], 18, parameters)})
+     for n <- 1..9, m <- 1..9, do: IO.inspect({n, m, execute_program(initial_program, [9,4,9,9,9,7,9,9,4,4,9,4,3,9])})
   end
 
   def part1_old(args) do
