@@ -74,35 +74,45 @@ defmodule AdventOfCode.Day24 do
     |> take(1)
   end
 
-  def diff([],[], _, acc), do: reverse(acc)
-  def diff([a1|r1], [a1|r2], n, acc), do: diff(r1, r2, n + 1, acc)
-  def diff([a1|r1], [a2|r2], n, acc), do: diff(r1, r2, n + 1, [{n, a1, a2}|acc])
+  def diff([], [], _, acc), do: reverse(acc)
+  def diff([a1 | r1], [a1 | r2], n, acc), do: diff(r1, r2, n + 1, acc)
+  def diff([a1 | r1], [a2 | r2], n, acc), do: diff(r1, r2, n + 1, [{n, a1, a2} | acc])
   def diff(l1, l2), do: diff(l1, l2, 0, [])
 
-  def step_function(z, {inp, [a1,a2,a3]}) do
-    if inp == ((rem(z, 26) + a2)), do: div(z, a1) , else: inp + a3 + 26 * div(z, a1)
+  def step_function(z, {inp, [a1, a2, a3]}) do
+    if inp == rem(z, 26) + a2, do: div(z, a1), else: inp + a3 + 26 * div(z, a1)
   end
 
   def execute_n_steps(n_list, steps, parameters) do
-      zip(n_list, slice(parameters, 0..(steps-1))) |> reduce(0, fn e, z -> step_function(z, e) end)
+    zip(n_list, slice(parameters, 0..(steps - 1)))
+    |> reduce(0, fn e, z -> step_function(z, e) end)
   end
 
   def part1(args) do
     initial_program = parse(args)
     programs = initial_program |> chunk_every(div(252, 14))
 
-    parameters = map(programs, fn b ->
-      for i <- [4,5,15], do: at(b,i) |> elem(3)
-    end) |> IO.inspect()
+    parameters =
+      map(programs, fn b ->
+        for i <- [4, 5, 15], do: at(b, i) |> elem(3)
+      end)
+      |> IO.inspect()
 
     n = 99_969_432_138_785
     n_list = to_charlist(Integer.to_string(n)) |> map(&(&1 - ?0))
     execute_program(initial_program, n_list) |> IO.inspect()
 
-     zip(n_list, parameters) |> reduce(0, fn e, z -> step_function(z, e) end)
+    zip(n_list, parameters) |> reduce(0, fn e, z -> step_function(z, e) end)
 
-#     for n <- 1..9, m <- 1..9, do: IO.inspect({n, m, execute_n_steps([9,4,9,9,9,7,9,9,4,4,9,4,3,9], 18, parameters)})
-     for n <- 1..9, m <- 1..9, do: IO.inspect({n, m, execute_program(initial_program, [9,4,9,9,9,7,9,9,4,4,9,4,3,9])})
+    #     for n <- 1..9, m <- 1..9, do: IO.inspect({n, m, execute_n_steps([9,4,9,9,9,7,9,9,4,4,9,4,3,9], 18, parameters)})
+    for n <- 1..9,
+        m <- 1..9,
+        do:
+          {n, m,
+           execute_program(initial_program, [9, 4, 9, 9, 9, 7, 9, 9, 4, 4, 9, 4, 3, 9])
+           |> elem(0)
+           |> Map.get(:z)}
+          |> IO.inspect()
   end
 
   def part1_old(args) do
