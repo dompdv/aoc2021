@@ -5,8 +5,14 @@ defmodule Day23Temp do
       tos = for e <- tos, do: if(Map.has_key?(map, e), do: Map.get(map, e), else: e)
       {from, tos}
     end
-    #|> Enum.sort(fn {_, a}, {_, b} -> length(a) < length(b) end)
-    |> Enum.map(fn {from, tos} -> {from, for(to <- tos, do: {to, path(from, to)})} end)
+    # |> Enum.sort(fn {_, a}, {_, b} -> length(a) < length(b) end)
+    |> Enum.map(fn {from, tos} ->
+      {from,
+       for(
+         to <- tos,
+         do: {to, path(from, to), MapSet.new(path(from, to)), length(path(from, to))}
+       )}
+    end)
     |> Map.new()
 
     #    |> List.flatten()
@@ -47,7 +53,7 @@ defmodule AdventOfCode.Day23 do
 
   @targets_generic %{
     :a_l => [],
-    :a_h => [:a_l],
+    :a_h => [:a_l, 0, 1, 3, 5, 7, 9, 10],
     0 => [:a_l, :a_h],
     1 => [:a_l, :a_h],
     3 => [:a_l, :a_h],
@@ -71,8 +77,8 @@ defmodule AdventOfCode.Day23 do
   }
 
   @paths for {i, r} <- @target_cases,
-               into: %{},
-               do: {i, Day23Temp.replace_targets(r, @targets_generic)}
+             into: %{},
+             do: {i, Day23Temp.replace_targets(r, @targets_generic)}
 
   @energy_consumption %{
     0 => 1,
@@ -82,6 +88,15 @@ defmodule AdventOfCode.Day23 do
   }
 
   @infinite 999_999_999_999
+
+  @wins for(
+          [a1, a2] <- [[12, 13], [13, 12]],
+          [b1, b2] <- [[14, 15], [15, 14]],
+          [c1, c2] <- [[16, 17], [17, 16]],
+          [d1, d2] <- [[18, 19], [19, 18]],
+          do: [a1, a2, b1, b2, c1, c2, d1, d2]
+        )
+        |> MapSet.new()
 
   def print_cell(i, [a1, a2, b1, b2, c1, c2, d1, d2]) do
     cond do
@@ -121,38 +136,96 @@ defmodule AdventOfCode.Day23 do
     end
   end
 
-  def possible_move([a1, a2, b1, b2, c1, c2, d1, d2] = positions) do
-    occupied_cells = MapSet.new(positions)
-    inverse_pos = with_index(positions) |> Enum.map(fn {k, v} -> {k, div(v, 2)} end) |> Map.new()
+  def hallway_full(0, [a1, a2, b1, b2, c1, c2, d1, d2]) when [a1, a2] in [[12, 13], [13, 12]], do: true
+  def hallway_full(0, _), do: false
 
-    hallways =
-      for h <- 0..3,
-          into: %{},
-          do:
-            {h, opened_hallway(h, occupied_cells, inverse_pos)}
-            |> IO.inspect()
+  def hallway_full(1, [a1, a2, b1, b2, c1, c2, d1, d2]) when [b1, b2] in [[14, 15], [15, 14]], do: true
+  def hallway_full(1, _), do: false
+
+  def hallway_full(2, [a1, a2, b1, b2, c1, c2, d1, d2]) when [c1, c2] in [[16, 17], [17, 16]], do: true
+  def hallway_full(2, _), do: false
+
+  def hallway_full(3, [a1, a2, b1, b2, c1, c2, d1, d2]) when [d1, d2] in [[18, 19], [19, 18]], do: true
+  def hallway_full(3, _), do: false
+
+
+  def win(pos), do: MapSet.member?(@wins, pos)
+
+  def possible_move(positions) do
+    oc = MapSet.new(positions)
+    oci = with_index(positions) |> Enum.map(fn {k, v} -> {k, div(v, 2)} end) |> Map.new()
+
+    hallways = for h <- 0..3, into: %{}, do: {h, opened_hallway(h, oc, oci)}
+
+    for {pos, amphi} <- with_index(positions) do
+      amphic = div(amphi, 2)
+
+      if hallway_full(amphic, positions) do
+        {amphi, []}
+      else
+        paths =
+          @paths[amphic][pos]
+          |> filter(fn {_, _, path, _} -> empty?(MapSet.intersection(oc, path)) end)
+          |> filter(fn {to, _, _, _} -> if to < 11, do: true, else: hallways[amphic] end)
+          |> map(fn {to, _, _, l} -> {amphi, to, l * @energy_consumption[amphic]} end)
+
+      {amphi, paths}
+      end
+
+    end
+    |> filter(fn {_, l} -> not empty?(l) end)
+    |> map(&elem(&1, 1))
+    |> List.flatten()
   end
 
-  def explore({_state, best_score, _moves, _energy, _win}, level) when level > 1,
+  def explore({_state, best_score, _moves, _energy}, level) when level > 50,
     do: best_score
 
-  def explore({state, best_score, moves, energy, win}, level) do
-    print(state)
-    p_moves = possible_move(state)
-
-    for {who, _from, to} = move <- p_moves do
-      new_state = List.update_at(state, who, fn _ -> to end)
-      # IO.inspect(move)
-      new_energy = energy + @energy_consumption[div(who, 2)]
-      new_s = {new_state, best_score, [move | moves], new_energy, win}
-      explore(new_s, level + 1)
+  def explore({state, best_score, moves, energy}, level) do
+    if moves == [{2, 14, 40}, {3, 15, 30}, {6, 5, 3000}, {4, 16, 400}, {3, 3, 40}] do
+      IO.inspect("et là?")
+      print(state)
+      IO.inspect(possible_move(state))
     end
+
+    reduce(
+      possible_move(state),
+      best_score,
+      fn {who, to, delta_energy} = move, current_best ->
+        new_state = List.update_at(state, who, fn _ -> to end)
+        new_energy = energy + delta_energy
+        new_moves = [move | moves]
+
+        if moves == [{3, 3, 40}] do
+          IO.inspect(move)
+          print(new_state)
+          IO.inspect(new_moves)
+        end
+
+        new_best =
+          if win(new_state) do
+            if new_energy < current_best do
+              IO.inspect({"WIN", current_best, new_energy, new_moves})
+              print(new_state)
+            end
+
+            Kernel.min(current_best, new_energy)
+          else
+            if new_energy >= current_best,
+              do: current_best,
+              else: explore({new_state, current_best, new_moves, new_energy}, level + 1)
+          end
+
+        Kernel.min(new_best, current_best)
+      end
+    )
   end
 
   def part1(_args) do
-    start = [13, 19, 12, 16, 14, 17, 15, 18]
-    # explore({start, @infinite, [], 0, false}, 0)
-    @paths
+    #start = [13, 19, 12, 16, 14, 17, 15, 18]
+    start = [14, 19, 13, 17, 15, 16, 12, 18]
+    print(start)
+    explore({start, @infinite, [], 0}, 0)
   end
 
   def part2(_args) do
