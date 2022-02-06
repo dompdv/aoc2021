@@ -1,9 +1,48 @@
+defmodule Day23Temp do
+  def replace_targets(map, targets) do
+    for {from, tos} <- targets do
+      from = if Map.has_key?(map, from), do: Map.get(map, from), else: from
+      tos = for e <- tos, do: (if Map.has_key?(map, e), do: Map.get(map, e), else: e)
+      {from, tos}
+    end
+    |> Enum.sort(fn {_, a}, {_, b} -> length(a) < length(b) end)
+  end
+
+end
 defmodule AdventOfCode.Day23 do
   import Enum
   @infinite 999_999_999_999
 
 
-  @energy_consumption %{
+  @targets_generic %{
+    :a_l => [],
+    :a_h => [:a_l],
+    0 => [:a_l, :a_h],
+    1 => [:a_l, :a_h],
+    3 => [:a_l, :a_h],
+    5 => [:a_l, :a_h],
+    7 => [:a_l, :a_h],
+    9 => [:a_l, :a_h],
+    10 => [:a_l, :a_h],
+    :b_l => [:a_l, :a_h, 0, 1, 3, 5, 7, 9, 10],
+    :b_h => [:a_l, :a_h, 0, 1, 3, 5, 7, 9, 10],
+    :c_l => [:a_l, :a_h, 0, 1, 3, 5, 7, 9, 10],
+    :c_h => [:a_l, :a_h, 0, 1, 3, 5, 7, 9, 10],
+    :d_l => [:a_l, :a_h, 0, 1, 3, 5, 7, 9, 10],
+    :d_h => [:a_l, :a_h, 0, 1, 3, 5, 7, 9, 10]
+  }
+
+  @target_cases %{
+    0 => %{a_l: 13, a_h: 12, b_l: 15, b_h: 14, c_l: 17, c_h: 16, d_l: 19, d_h: 18},
+    1 => %{a_l: 15, a_h: 14, b_l: 13, b_h: 12, c_l: 17, c_h: 16, d_l: 19, d_h: 18},
+    2 => %{a_l: 17, a_h: 16, b_l: 15, b_h: 14, c_l: 13, c_h: 12, d_l: 19, d_h: 18},
+    3 => %{a_l: 19, a_h: 18, b_l: 15, b_h: 14, c_l: 17, c_h: 16, d_l: 13, d_h: 12}
+}
+
+
+@targets for {i, r} <- @target_cases, into: %{}, do: {i, Day23Temp.replace_targets(r, @targets_generic)}
+
+@energy_consumption %{
     0 => 1,
     1 => 10,
     2 => 100,
@@ -75,8 +114,8 @@ defmodule AdventOfCode.Day23 do
 
   def part1(_args) do
     start = [13, 19, 12, 16, 14, 17, 15, 18]
-    explore({start, @infinite, [], 0, false}, 0)
-    :ok
+    #explore({start, @infinite, [], 0, false}, 0)
+    @targets
   end
 
   def part2(_args) do
