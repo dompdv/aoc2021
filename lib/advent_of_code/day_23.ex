@@ -136,58 +136,58 @@ defmodule AdventOfCode.Day23 do
     end
   end
 
-  def hallway_full(0, [a1, a2, b1, b2, c1, c2, d1, d2]) when [a1, a2] in [[12, 13], [13, 12]], do: true
+  def hallway_full(0, [a1, a2, _b1, _b2, _c1, _c2, _d1, _d2])
+      when [a1, a2] in [[12, 13], [13, 12]],
+      do: true
+
   def hallway_full(0, _), do: false
 
-  def hallway_full(1, [a1, a2, b1, b2, c1, c2, d1, d2]) when [b1, b2] in [[14, 15], [15, 14]], do: true
+  def hallway_full(1, [_a1, _a2, b1, b2, _c1, _c2, _d1, _d2])
+      when [b1, b2] in [[14, 15], [15, 14]],
+      do: true
+
   def hallway_full(1, _), do: false
 
-  def hallway_full(2, [a1, a2, b1, b2, c1, c2, d1, d2]) when [c1, c2] in [[16, 17], [17, 16]], do: true
+  def hallway_full(2, [_a1, _a2, _b1, _b2, c1, c2, _d1, _d2])
+      when [c1, c2] in [[16, 17], [17, 16]],
+      do: true
+
   def hallway_full(2, _), do: false
 
-  def hallway_full(3, [a1, a2, b1, b2, c1, c2, d1, d2]) when [d1, d2] in [[18, 19], [19, 18]], do: true
-  def hallway_full(3, _), do: false
+  def hallway_full(3, [_a1, _a2, _b1, _b2, _c1, _c2, d1, d2])
+      when [d1, d2] in [[18, 19], [19, 18]],
+      do: true
 
+  def hallway_full(3, _), do: false
 
   def win(pos), do: MapSet.member?(@wins, pos)
 
   def possible_move(positions) do
     oc = MapSet.new(positions)
     oci = with_index(positions) |> Enum.map(fn {k, v} -> {k, div(v, 2)} end) |> Map.new()
-
     hallways = for h <- 0..3, into: %{}, do: {h, opened_hallway(h, oc, oci)}
 
     for {pos, amphi} <- with_index(positions) do
       amphic = div(amphi, 2)
 
-      if hallway_full(amphic, positions) do
-        {amphi, []}
-      else
-        paths =
-          @paths[amphic][pos]
-          |> filter(fn {_, _, path, _} -> empty?(MapSet.intersection(oc, path)) end)
-          |> filter(fn {to, _, _, _} -> if to < 11, do: true, else: hallways[amphic] end)
-          |> map(fn {to, _, _, l} -> {amphi, to, l * @energy_consumption[amphic]} end)
-
-      {amphi, paths}
-      end
-
+      if hallway_full(amphic, positions),
+        do: {amphi, []},
+        else:
+          {amphi,
+           @paths[amphic][pos]
+           |> filter(fn {_, _, path, _} -> empty?(MapSet.intersection(oc, path)) end)
+           |> filter(fn {to, _, _, _} -> if to < 11, do: true, else: hallways[amphic] end)
+           |> map(fn {to, _, _, l} -> {amphi, to, l * @energy_consumption[amphic]} end)}
     end
     |> filter(fn {_, l} -> not empty?(l) end)
     |> map(&elem(&1, 1))
     |> List.flatten()
   end
 
-  def explore({_state, best_score, _moves, _energy}, level) when level > 50,
+  def explore({_state, best_score, _moves, _energy}, level) when level > 15,
     do: best_score
 
   def explore({state, best_score, moves, energy}, level) do
-    if moves == [{2, 14, 40}, {3, 15, 30}, {6, 5, 3000}, {4, 16, 400}, {3, 3, 40}] do
-      IO.inspect("et là?")
-      print(state)
-      IO.inspect(possible_move(state))
-    end
-
     reduce(
       possible_move(state),
       best_score,
@@ -195,12 +195,6 @@ defmodule AdventOfCode.Day23 do
         new_state = List.update_at(state, who, fn _ -> to end)
         new_energy = energy + delta_energy
         new_moves = [move | moves]
-
-        if moves == [{3, 3, 40}] do
-          IO.inspect(move)
-          print(new_state)
-          IO.inspect(new_moves)
-        end
 
         new_best =
           if win(new_state) do
@@ -222,7 +216,7 @@ defmodule AdventOfCode.Day23 do
   end
 
   def part1(_args) do
-    #start = [13, 19, 12, 16, 14, 17, 15, 18]
+    # start = [13, 19, 12, 16, 14, 17, 15, 18]
     start = [14, 19, 13, 17, 15, 16, 12, 18]
     print(start)
     explore({start, @infinite, [], 0}, 0)
