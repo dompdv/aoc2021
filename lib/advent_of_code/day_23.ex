@@ -2,17 +2,48 @@ defmodule Day23Temp do
   def replace_targets(map, targets) do
     for {from, tos} <- targets do
       from = if Map.has_key?(map, from), do: Map.get(map, from), else: from
-      tos = for e <- tos, do: (if Map.has_key?(map, e), do: Map.get(map, e), else: e)
+      tos = for e <- tos, do: if(Map.has_key?(map, e), do: Map.get(map, e), else: e)
       {from, tos}
     end
-    |> Enum.sort(fn {_, a}, {_, b} -> length(a) < length(b) end)
+    #|> Enum.sort(fn {_, a}, {_, b} -> length(a) < length(b) end)
+    |> Enum.map(fn {from, tos} -> {from, for(to <- tos, do: {to, path(from, to)})} end)
+    |> Map.new()
+
+    #    |> List.flatten()
   end
 
+  def path(to, to), do: []
+  def path(12, 13), do: [13]
+  def path(14, 15), do: [15]
+  def path(16, 17), do: [17]
+  def path(18, 19), do: [19]
+  def path(from, to) when from in [13, 15, 17, 19], do: [from - 1] ++ path(from - 1, to)
+  def path(from, to) when from in [12, 14, 16, 18], do: [from - 10] ++ path(from - 10, to)
+
+  def path(from, to) when to == from + 1 or to == from - 1, do: [to]
+
+  def path(from, to) when to < 11 and from < 11 and to < from,
+    do: [from - 1] ++ path(from - 1, to)
+
+  def path(from, to) when to < 11 and from < 11 and to > from,
+    do: [from + 1] ++ path(from + 1, to)
+
+  def path(from, to) when to in [12, 13] and from == 2, do: [12] ++ path(12, to)
+  def path(from, to) when to in [12, 13] and from < 2, do: [from + 1] ++ path(from + 1, to)
+  def path(from, to) when to in [12, 13] and from > 2, do: [from - 1] ++ path(from - 1, to)
+  def path(from, to) when to in [14, 15] and from == 4, do: [14] ++ path(14, to)
+  def path(from, to) when to in [14, 15] and from < 4, do: [from + 1] ++ path(from + 1, to)
+  def path(from, to) when to in [14, 15] and from > 4, do: [from - 1] ++ path(from - 1, to)
+  def path(from, to) when to in [16, 17] and from == 6, do: [16] ++ path(16, to)
+  def path(from, to) when to in [16, 17] and from < 6, do: [from + 1] ++ path(from + 1, to)
+  def path(from, to) when to in [16, 17] and from > 6, do: [from - 1] ++ path(from - 1, to)
+  def path(from, to) when to in [18, 19] and from == 8, do: [18] ++ path(18, to)
+  def path(from, to) when to in [18, 19] and from < 8, do: [from + 1] ++ path(from + 1, to)
+  def path(from, to) when to in [18, 19] and from > 8, do: [from - 1] ++ path(from - 1, to)
 end
+
 defmodule AdventOfCode.Day23 do
   import Enum
-  @infinite 999_999_999_999
-
 
   @targets_generic %{
     :a_l => [],
@@ -37,17 +68,20 @@ defmodule AdventOfCode.Day23 do
     1 => %{a_l: 15, a_h: 14, b_l: 13, b_h: 12, c_l: 17, c_h: 16, d_l: 19, d_h: 18},
     2 => %{a_l: 17, a_h: 16, b_l: 15, b_h: 14, c_l: 13, c_h: 12, d_l: 19, d_h: 18},
     3 => %{a_l: 19, a_h: 18, b_l: 15, b_h: 14, c_l: 17, c_h: 16, d_l: 13, d_h: 12}
-}
+  }
 
+  @paths for {i, r} <- @target_cases,
+               into: %{},
+               do: {i, Day23Temp.replace_targets(r, @targets_generic)}
 
-@targets for {i, r} <- @target_cases, into: %{}, do: {i, Day23Temp.replace_targets(r, @targets_generic)}
-
-@energy_consumption %{
+  @energy_consumption %{
     0 => 1,
     1 => 10,
     2 => 100,
     3 => 1000
   }
+
+  @infinite 999_999_999_999
 
   def print_cell(i, [a1, a2, b1, b2, c1, c2, d1, d2]) do
     cond do
@@ -78,22 +112,25 @@ defmodule AdventOfCode.Day23 do
   def opened_hallway(hallway, occupied, inverse) do
     high = 12 + 2 * hallway
     low = high + 1
+
     # le hallway est ouvert dans deux cas: soit les deux cases sont vides, soit celle d'en haut est vide et celle d'en bas remplie par le bon type d'amphipod
     cond do
       not MapSet.member?(occupied, high) and not MapSet.member?(occupied, low) -> true
       not MapSet.member?(occupied, high) and Map.get(inverse, low) == hallway -> true
       true -> false
     end
-
   end
+
   def possible_move([a1, a2, b1, b2, c1, c2, d1, d2] = positions) do
     occupied_cells = MapSet.new(positions)
-    inverse_pos = with_index(positions) |> Enum.map(fn {k,v} -> {k, div(v,2)} end) |> Map.new()
+    inverse_pos = with_index(positions) |> Enum.map(fn {k, v} -> {k, div(v, 2)} end) |> Map.new()
 
-    hallways = for h <- 0..3, into: %{}, do: {h, opened_hallway(h, occupied_cells, inverse_pos)}
-
-    |> IO.inspect()
-
+    hallways =
+      for h <- 0..3,
+          into: %{},
+          do:
+            {h, opened_hallway(h, occupied_cells, inverse_pos)}
+            |> IO.inspect()
   end
 
   def explore({_state, best_score, _moves, _energy, _win}, level) when level > 1,
@@ -114,8 +151,8 @@ defmodule AdventOfCode.Day23 do
 
   def part1(_args) do
     start = [13, 19, 12, 16, 14, 17, 15, 18]
-    #explore({start, @infinite, [], 0, false}, 0)
-    @targets
+    # explore({start, @infinite, [], 0, false}, 0)
+    @paths
   end
 
   def part2(_args) do
