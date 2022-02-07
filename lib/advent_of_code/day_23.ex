@@ -160,6 +160,16 @@ defmodule AdventOfCode.Day23 do
 
   def hallway_full(3, _), do: false
 
+  def last_move(amphic, pos, oc) do
+    cond do
+      amphic == 0 and pos == 12 and not member?(oc, 13) -> 13
+      amphic == 1 and pos == 14 and not member?(oc, 15) -> 15
+      amphic == 2 and pos == 16 and not member?(oc, 17) -> 17
+      amphic == 3 and pos == 18 and not member?(oc, 19) -> 19
+      true -> nil
+    end
+  end
+
   def win(pos), do: MapSet.member?(@wins, pos)
 
   def possible_move(positions) do
@@ -174,9 +184,12 @@ defmodule AdventOfCode.Day23 do
         do: {amphi, []},
         else:
           {amphi,
-           @paths[amphic][pos]
-           |> filter(fn {_, _, path, _} -> empty?(MapSet.intersection(oc, path)) end)
+           case last_move(amphic, pos, oc) do
+             nil -> @paths[amphic][pos]
+             to -> [{to, [to], MapSet.new([to]), 1}]
+           end
            |> filter(fn {to, _, _, _} -> if to < 11, do: true, else: hallways[amphic] end)
+           |> filter(fn {_, _, path, _} -> empty?(MapSet.intersection(oc, path)) end)
            |> map(fn {to, _, _, l} -> {amphi, to, l * @energy_consumption[amphic]} end)}
     end
     |> filter(fn {_, l} -> not empty?(l) end)
@@ -184,10 +197,15 @@ defmodule AdventOfCode.Day23 do
     |> List.flatten()
   end
 
-  def explore({_state, best_score, _moves, _energy}, level) when level > 15,
+  def explore({_state, best_score, _moves, _energy}, level) when level > 30,
     do: best_score
 
   def explore({state, best_score, moves, energy}, level) do
+    if level > 100 do
+      IO.inspect(moves)
+      print(state)
+    end
+
     reduce(
       possible_move(state),
       best_score,
@@ -219,7 +237,7 @@ defmodule AdventOfCode.Day23 do
     # start = [13, 19, 12, 16, 14, 17, 15, 18]
     start = [14, 19, 13, 17, 15, 16, 12, 18]
     print(start)
-    explore({start, @infinite, [], 0}, 0)
+    explore({start, 14148, [], 0}, 0)
   end
 
   def part2(_args) do
