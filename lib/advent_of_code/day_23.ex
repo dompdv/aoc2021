@@ -125,32 +125,32 @@ defmodule AdventOfCode.Day23 do
   def free(oc, cell), do: not MapSet.member?(oc, cell)
   def occupied(oc, cell), do: MapSet.member?(oc, cell)
 
-  def possible_move(positions, h_analysis) do
+  def possible_move(positions, h_analysis, paths) do
     oc = MapSet.new(positions)
-    h_to_inspect = (1 + find_index(h_analysis, fn e -> e == :pure end)) |> IO.inspect()
+    h_to_inspect = find_index(h_analysis, fn e -> e == :pure end)
 
-    if h_to_inspect != nil and occupied(oc, h_to_inspect * 200),
+    if h_to_inspect != nil and occupied(oc,(1 + h_to_inspect) * 200),
       do: possible_move_stack(h_to_inspect, oc, positions),
-      else: possible_move_standard(positions, oc, h_analysis)
+      else: possible_move_standard(positions, oc, h_analysis, paths)
   end
 
   def possible_move_stack(h_to_inspect, oc, positions) do
     p_c = div(length(positions), 4)
-    start = h_to_inspect * 200
+    start = (1+h_to_inspect) * 200
 
     reduce_while((start + 1)..(start + p_c - 1), 0, fn cell, _acc ->
       if occupied(oc, cell) do
         {:cont, 0}
       else
         who = find_index(positions, fn e -> e == cell - 1 end)
-        {:halt, {who, cell, @energy_consumption[h_to_inspect - 1]}}
+        {:halt, [{who, cell, @energy_consumption[h_to_inspect]}]}
       end
     end)
   end
 
   def reachable(oc, path_s), do: empty?(MapSet.intersection(oc, path_s))
 
-  def possible_move_standard(positions, oc, h_analysis) do
+  def possible_move_standard(positions, oc, h_analysis, paths) do
     p_c = div(length(positions), 4)
 
     for {pos, amphi} <- with_index(positions) do
@@ -158,7 +158,6 @@ defmodule AdventOfCode.Day23 do
       hallway_status = at(h_analysis, amphic)
 
       if hallway_status == :full do
-        IO.inspect({:full, amphi})
         []
       else
         target = 200 * (amphic + 1)
@@ -167,21 +166,21 @@ defmodule AdventOfCode.Day23 do
         if hallway_status == :pure and in_hallway do
           []
         else
-          bercail = path(pos, target) |> MapSet.new()
+          {bercail, l} = paths[{pos, target}]
 
           if hallway_status == :pure and reachable(oc, bercail) do
-            [{amphi, target, MapSet.size(bercail) * @energy_consumption[amphic]}]
+            [{amphi, target, l * @energy_consumption[amphic]}]
           else
             if pos < 11 do
               []
             else
               for(
                 target <- [0, 1, 3, 5, 7, 9, 10],
-                do: {target, path(pos, target) |> MapSet.new()}
+                do: {target, paths[{pos, target}]}
               )
-              |> filter(fn {_, path} -> empty?(MapSet.intersection(oc, path)) end)
-              |> map(fn {target, p} ->
-                {amphi, target, MapSet.size(p) * @energy_consumption[amphic]}
+              |> filter(fn {_, {path, _}} -> empty?(MapSet.intersection(oc, path)) end)
+              |> map(fn {target, {_, l}} ->
+                {amphi, target, l * @energy_consumption[amphic]}
               end)
             end
           end
@@ -192,71 +191,76 @@ defmodule AdventOfCode.Day23 do
     |> List.flatten()
   end
 
-  def explore(_state, best_score, _moves, _energy, _hallways, level) when level > 30,
+  def explore(_state, best_score, _moves, _energy, _hallways, _paths, level) when level > 30,
     do: best_score
 
-  def explore(state, best_score, moves, energy, hallways, level) do
-    if level > 3 do
+  def explore(state, best_score, moves, energy, hallways, paths, level) do
+    h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
+
+    if h_analysis == :win do
       IO.inspect(moves)
       print(state)
+      IO.inspect({energy, best_score})
+      Kernel.min(energy, best_score)
+    else
+      reduce(
+        possible_move(state, h_analysis, paths),
+        best_score,
+        fn {who, to, delta_energy} = move, current_best ->
+          new_state = List.update_at(state, who, fn _ -> to end)
+          new_energy = energy + delta_energy
+          new_moves = [move | moves]
+
+          new_best =
+              if new_energy >= current_best,
+                do: current_best,
+                else: explore(new_state, current_best, new_moves, new_energy, hallways, paths, level + 1)
+
+          Kernel.min(new_best, current_best)
+        end
+      )
     end
-
-    h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
-    #    case hallway_analysis(start, MapSet.new(start), hallways) do
-    #      :win ->
-    #        energy
-
-    #     h_analysis ->
-    #       p_moves = possible_move(state, h_analysis, hallways)
-    #   end
-
-    reduce(
-      possible_move(state, h_analysis),
-      best_score,
-      fn {who, to, delta_energy} = move, current_best ->
-        new_state = List.update_at(state, who, fn _ -> to end)
-        new_energy = energy + delta_energy
-        new_moves = [move | moves]
-
-        new_best =
-          if true do
-            if new_energy < current_best do
-              IO.inspect({"WIN", current_best, new_energy, new_moves})
-              print(new_state)
-              new_energy
-            else
-              current_best
-            end
-          else
-            if new_energy >= current_best,
-              do: current_best,
-              else: explore(new_state, current_best, new_moves, new_energy, hallways, level + 1)
-          end
-
-        Kernel.min(new_best, current_best)
-      end
-    )
   end
 
   def part1(_args) do
     # start = [201, 801, 200, 600, 400, 601, 401, 800]
-    start = [400, 801, 201, 601, 401, 600, 200, 800]
-    start = [201, 601, 400, 401, 801, 600, 10, 800]
-    start = [200, 201, 400, 401, 601, 600, 801, 1]
-    start = [10, 201, 200, 601, 401, 600, 801, 1]
+    state = [400, 801, 201, 601, 401, 600, 200, 800]
 
-    print(start)
+    print(state)
 
+    pos = [0,1,2,3,4,5,6,7,8,9,10,200,201,400,401,600,601,800,801]
+    paths = (for from <- pos, to <- pos, do: {{from, to}, {path(from, to) |> MapSet.new(), length(path(from, to))}}) |> Map.new()
     hallways =
-      for(h <- 1..4, do: {h, for(i <- 0..(div(length(start), 4) - 1), do: 200 * h + i)})
+      for(h <- 1..4, do: {h, for(i <- 0..(div(length(state), 4) - 1), do: 200 * h + i)})
       |> map(fn {h, l} -> {h, {sort(l, :desc), MapSet.new(l)}} end)
       |> Map.new()
 
-    h_analysis = hallway_analysis(start, MapSet.new(start), hallways)
-   possible_move(start, h_analysis)
-
+   # h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
+   #possible_move(state, h_analysis)
+   explore(state, @infinite, [], 0, hallways, paths, 0)
   end
 
   def part2(_args) do
+
+#############
+#...........#
+###B#C#B#D###
+  #D#C#B#A#
+  #D#B#A#C#
+  #A#D#C#A#
+  #########
+
+  state = [203, 602, 801, 803, 200, 402, 600, 601, 400, 401, 603, 802, 201, 202, 403, 800]
+
+    print(state)
+
+    hallways =
+      for(h <- 1..4, do: {h, for(i <- 0..(div(length(state), 4) - 1), do: 200 * h + i)})
+      |> map(fn {h, l} -> {h, {sort(l, :desc), MapSet.new(l)}} end)
+      |> Map.new()
+
+   # h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
+   #possible_move(state, h_analysis)
+   explore(state, 50000, [], 0, hallways, 0, 0)
   end
 end
