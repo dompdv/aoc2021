@@ -252,8 +252,20 @@ defmodule AdventOfCode.Day23 do
 
   state = [203, 602, 801, 803, 200, 402, 600, 601, 400, 401, 603, 802, 201, 202, 403, 800]
 
+# le mien
+#############
+#...........#
+###D#A#C#D###
+  #D#C#B#A#
+  #D#B#A#C#
+  #B#C#B#A#
+  #########
+  state = [400,602,801,803,203,402,601,603,401,403,600,802,200,201,202,800]
+
     print(state)
 
+    pos = [0,1,2,3,4,5,6,7,8,9,10, 200,201,202,203, 400,401,402,403, 600,601,602,603, 800,801,802,803]
+    paths = (for from <- pos, to <- pos, do: {{from, to}, {path(from, to) |> MapSet.new(), length(path(from, to))}}) |> Map.new()
     hallways =
       for(h <- 1..4, do: {h, for(i <- 0..(div(length(state), 4) - 1), do: 200 * h + i)})
       |> map(fn {h, l} -> {h, {sort(l, :desc), MapSet.new(l)}} end)
@@ -261,6 +273,6 @@ defmodule AdventOfCode.Day23 do
 
    # h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
    #possible_move(state, h_analysis)
-   explore(state, 50000, [], 0, hallways, 0, 0)
+   explore(state, 50000, [], 0, hallways, paths, 0)
   end
 end
