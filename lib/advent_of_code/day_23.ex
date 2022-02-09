@@ -191,8 +191,7 @@ defmodule AdventOfCode.Day23 do
     |> List.flatten()
   end
 
-  def explore(_state, best_score, _moves, _energy, _hallways, _paths, level) when level > 30,
-    do: best_score
+ # def explore(_state, best_score, _moves, _energy, _hallways, _paths, level) when level > 60, do: best_score
 
   def explore(state, best_score, moves, energy, hallways, paths, level) do
     h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
@@ -261,6 +260,7 @@ defmodule AdventOfCode.Day23 do
   #B#C#B#A#
   #########
   state = [400,602,801,803,203,402,601,603,401,403,600,802,200,201,202,800]
+#  state = [1,201,202,203,400,401,402,403,600,601,602,603,800,801,802,803]
 
     print(state)
 
