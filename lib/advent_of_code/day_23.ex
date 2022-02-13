@@ -216,6 +216,46 @@ defmodule AdventOfCode.Day23 do
     end
   end
 
+  def find_min(distances, a_set) do
+    reduce(a_set, {@infinite, nil}, fn s, {mind, mins} ->
+      d = distances[s]
+      if  d < mind, do: {d, s}, else: {mind, mins}
+    end)
+    |> elem(1)
+  end
+
+  def find_short(distances, known, to_see, hallways, paths) do
+    state = find_min(distances, to_see)
+    to_see = MapSet.delete(to_see, state)
+    known = MapSet.put(known, state)
+
+    h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
+    energy = distances[state]
+
+    if :random.uniform() > 0.9999, do: IO.inspect({energy, state})
+
+    if h_analysis == :win do
+      energy
+    else
+      p_moves =
+        possible_move(state, h_analysis, paths) |> map(
+          fn {who, to, delta_energy, _estimate} ->
+            {List.update_at(state, who, fn _ -> to end), energy + delta_energy}
+      end)
+      |> filter(fn {s,_} -> not MapSet.member?(known,s) end)
+
+      distances =
+      reduce(p_moves, distances, fn {s,e},acc ->
+        if e < acc[s], do: Map.put(acc, s, e), else: acc
+      end)
+
+      to_see = MapSet.new(for {s,_}<-p_moves, do: s) |> MapSet.union(to_see)
+
+      find_short(distances, known, to_see, hallways, paths)
+    end
+  end
+
+
   def part1(_args) do
     # start = [201, 801, 200, 600, 400, 601, 401, 800]
     state = [400, 801, 201, 601, 401, 600, 200, 800]
@@ -239,8 +279,9 @@ defmodule AdventOfCode.Day23 do
 
     # h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
     # possible_move(state, h_analysis)
-     explore(state, @infinite, 0, hallways, paths, 0)
+    #explore(state, @infinite, 0, hallways, paths, 0)
     #estimate(state)
+    find_short(%{state => 0}, MapSet.new(), MapSet.new([state]), hallways, paths)
   end
 
   def part2(_args) do
