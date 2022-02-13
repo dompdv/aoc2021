@@ -47,8 +47,6 @@ defmodule AdventOfCode.Day23 do
     3 => 1000
   }
 
-  @infinite 999_999_999_999
-
   def print_cell(i, positions) do
     n_p = div(length(positions), 4)
 
@@ -181,25 +179,25 @@ defmodule AdventOfCode.Day23 do
       energy
     else
       p_moves =
-        possible_move(state, h_analysis, paths) |> map(
-          fn {who, to, delta_energy} ->
-            {energy + delta_energy, List.update_at(state, who, fn _ -> to end)}
-      end)
-      |> filter(fn {_, s} -> not MapSet.member?(known,s) end)
+        possible_move(state, h_analysis, paths)
+        |> map(fn {who, to, delta_energy} ->
+          {energy + delta_energy, List.update_at(state, who, fn _ -> to end)}
+        end)
+        |> filter(fn {_, s} -> not MapSet.member?(known, s) end)
 
       distances =
-      reduce(p_moves, distances, fn {e,s},acc ->
-        if e < acc[s], do: Map.put(acc, s, e), else: acc
-      end)
+        reduce(p_moves, distances, fn {e, s}, acc ->
+          if e < acc[s], do: Map.put(acc, s, e), else: acc
+        end)
 
-      to_see = :gb_sets.union(to_see, :gb_sets.from_list(for {_,s} <- p_moves, do: {distances[s],s}))
+      to_see =
+        :gb_sets.union(to_see, :gb_sets.from_list(for {_, s} <- p_moves, do: {distances[s], s}))
+
       find_short(distances, known, to_see, hallways, paths)
     end
   end
 
-
   def part1(_args) do
-    # start = [201, 801, 200, 600, 400, 601, 401, 800]
     state = [400, 801, 201, 601, 401, 600, 200, 800]
 
     print(state)
@@ -219,10 +217,6 @@ defmodule AdventOfCode.Day23 do
       |> map(fn {h, l} -> {h, {sort(l, :desc), MapSet.new(l)}} end)
       |> Map.new()
 
-    # h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
-    # possible_move(state, h_analysis)
-    #explore(state, @infinite, 0, hallways, paths, 0)
-    #estimate(state)
     find_short(%{state => 0}, MapSet.new(), :gb_sets.from_list([{0, state}]), hallways, paths)
   end
 
@@ -250,35 +244,9 @@ defmodule AdventOfCode.Day23 do
 
     print(state)
 
-    pos = [
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10,
-      200,
-      201,
-      202,
-      203,
-      400,
-      401,
-      402,
-      403,
-      600,
-      601,
-      602,
-      603,
-      800,
-      801,
-      802,
-      803
-    ]
+    pos =
+      for(i <- 0..10, do: i) ++
+        [200, 201, 202, 203, 400, 401, 402, 403, 600, 601, 602, 603, 800, 801, 802, 803]
 
     paths =
       for(
@@ -293,10 +261,6 @@ defmodule AdventOfCode.Day23 do
       |> map(fn {h, l} -> {h, {sort(l, :desc), MapSet.new(l)}} end)
       |> Map.new()
 
-    # h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
-    # possible_move(state, h_analysis)
-    #explore(state, 50000, 0, hallways, paths, 0)
     find_short(%{state => 0}, MapSet.new(), :gb_sets.from_list([{0, state}]), hallways, paths)
-
   end
 end
