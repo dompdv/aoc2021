@@ -240,12 +240,15 @@ defmodule AdventOfCode.Day23 do
       p_moves =
         possible_move(state, h_analysis, paths) |> map(
           fn {who, to, delta_energy, _estimate} ->
-            {List.update_at(state, who, fn _ -> to end), energy + delta_energy}
+            new_state = List.update_at(state, who, fn _ -> to end)
+            new_energy = energy + delta_energy
+            new_energy = if new_energy < distances[state], do: new_energy, else: distances[state]
+            { new_energy, new_state}
       end)
-      |> filter(fn {s,_} -> not MapSet.member?(known,s) end)
+      |> filter(fn {_, s} -> not MapSet.member?(known,s) end)
 
       distances =
-      reduce(p_moves, distances, fn {s,e},acc ->
+      reduce(p_moves, distances, fn {e,s},acc ->
         if e < acc[s], do: Map.put(acc, s, e), else: acc
       end)
 
