@@ -49,23 +49,6 @@ defmodule AdventOfCode.Day23 do
 
   @infinite 999_999_999_999
 
-  def estimate(positions) do
-    p_c = div(length(positions), 4)
-
-    reduce(with_index(positions), 0, fn {pos, i}, acc ->
-      amphic = div(i, p_c)
-      hallway_start = (amphic + 1) * 200
-
-      acc +
-        @energy_consumption[amphic] *
-          cond do
-            pos >= hallway_start and pos < hallway_start + p_c -> 0
-            pos < 11 -> 1 + abs(pos - 2 * (amphic + 1))
-            true -> 2 + abs(div(pos, 100) - 2 * (amphic + 1))
-          end
-    end)
-  end
-
   def print_cell(i, positions) do
     n_p = div(length(positions), 4)
 
@@ -138,7 +121,7 @@ defmodule AdventOfCode.Day23 do
         {:cont, 0}
       else
         who = find_index(positions, fn e -> e == cell - 1 end)
-        {:halt, [{who, cell, @energy_consumption[h_to_inspect], 0}]}
+        {:halt, [{who, cell, @energy_consumption[h_to_inspect]}]}
       end
     end)
   end
@@ -164,7 +147,7 @@ defmodule AdventOfCode.Day23 do
           {bercail, l} = paths[{pos, target}]
 
           if hallway_status == :pure and reachable(oc, bercail) do
-            [{amphi, target, l * @energy_consumption[amphic], 0}]
+            [{amphi, target, l * @energy_consumption[amphic]}]
           else
             if pos < 11 do
               []
@@ -175,7 +158,7 @@ defmodule AdventOfCode.Day23 do
               )
               |> filter(fn {_, {path, _}} -> empty?(MapSet.intersection(oc, path)) end)
               |> map(fn {target, {_, l}} ->
-                {amphi, target, l * @energy_consumption[amphic], estimate(List.update_at(positions, amphi, fn _ -> target end))}
+                {amphi, target, l * @energy_consumption[amphic]}
               end)
             end
           end
@@ -184,44 +167,6 @@ defmodule AdventOfCode.Day23 do
     end
     |> filter(fn l -> not empty?(l) end)
     |> List.flatten()
-    |> sort(fn {_,_,_,a}, {_,_,_,b} -> a < b end)
-  end
-
-  # def explore(_state, best_score, _energy, _hallways, _paths, level) when level > 60, do: best_score
-
-  def explore(state, best_score, energy, hallways, paths, level) do
-    if :random.uniform() > 0.99999 or level < 4, do: IO.inspect({level, energy, best_score})
-    h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
-
-    if h_analysis == :win do
-      print(state)
-      IO.inspect({energy, best_score})
-      Kernel.min(energy, best_score)
-    else
-      reduce(
-        possible_move(state, h_analysis, paths),
-        best_score,
-        fn {who, to, delta_energy, _estimate}, current_best ->
-          new_state = List.update_at(state, who, fn _ -> to end)
-          new_energy = energy + delta_energy
-
-          new_best =
-            if new_energy >= current_best,
-              do: current_best,
-              else: explore(new_state, current_best, new_energy, hallways, paths, level + 1)
-
-          Kernel.min(new_best, current_best)
-        end
-      )
-    end
-  end
-
-  def find_min(distances, a_set) do
-    reduce(a_set, {@infinite, nil}, fn s, {mind, mins} ->
-      d = distances[s]
-      if  d < mind, do: {d, s}, else: {mind, mins}
-    end)
-    |> elem(1)
   end
 
   def find_short(distances, known, to_see, hallways, paths) do
@@ -237,7 +182,7 @@ defmodule AdventOfCode.Day23 do
     else
       p_moves =
         possible_move(state, h_analysis, paths) |> map(
-          fn {who, to, delta_energy, _estimate} ->
+          fn {who, to, delta_energy} ->
             {energy + delta_energy, List.update_at(state, who, fn _ -> to end)}
       end)
       |> filter(fn {_, s} -> not MapSet.member?(known,s) end)
@@ -350,6 +295,8 @@ defmodule AdventOfCode.Day23 do
 
     # h_analysis = hallway_analysis(state, MapSet.new(state), hallways)
     # possible_move(state, h_analysis)
-    explore(state, 50000, 0, hallways, paths, 0)
+    #explore(state, 50000, 0, hallways, paths, 0)
+    find_short(%{state => 0}, MapSet.new(), :gb_sets.from_list([{0, state}]), hallways, paths)
+
   end
 end
